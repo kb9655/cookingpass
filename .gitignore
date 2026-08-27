@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Netlify CLI local state
+.netlify/
+
+# Build output
+dist/
+build/
+
+# Logs and OS
+*.log
+.DS_Store
+Thumbs.db
