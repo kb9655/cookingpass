@@ -1,0 +1,64 @@
+@import "@fontsource/outfit/400.css";
+@import "@fontsource/outfit/500.css";
+@import "@fontsource/outfit/600.css";
+@import "@fontsource/outfit/700.css";
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --color-canvas: #f3f6f4;
+  --color-ink: #1c2421;
+  --color-muted: #5d6b64;
+  --color-accent: #1f6b4a;
+  --color-accent-dark: #16553a;
+  --color-card: #ffffff;
+  --color-line: #d7e0db;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+.page {
+  @apply mx-auto w-full max-w-lg px-4 py-6;
+}
+
+.btn-primary {
+  @apply inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-50;
+}
+
+.btn-secondary {
+  @apply inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-card px-5 text-sm font-semibold text-ink transition active:scale-[0.98] disabled:opacity-50;
+}
+
+.field {
+  @apply flex flex-col gap-2;
+}
+
+.field label {
+  @apply text-sm font-medium;
+}
+
+.field input,
+.field select,
+.field textarea {
+  @apply min-h-11 rounded-2xl border border-line bg-card px-3 text-sm text-ink outline-none ring-accent/30 placeholder:text-muted/70 focus:ring-2;
+}
+
+.media-slot {
+  @apply flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-[1.25rem] border border-dashed border-line bg-card text-sm text-muted;
+}
+
+.media-slot span {
+  @apply text-xs;
+}
