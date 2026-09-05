@@ -1,13 +1,25 @@
-import { customIngredient, listCatalogFromRecipes } from "../data/recipeRepository";
+import { customIngredient } from "../data/recipeRepository";
 import { deletePantryItem, listPantry, updatePantryItem, upsertPantryItem } from "../data/pantryStore";
-import type { Ingredient, RecipeIngredient, UserIngredient } from "../types/ingredient";
+import type { Locale } from "../i18n/messages";
+import type { RecipeIngredient, UserIngredient } from "../types/ingredient";
+import { listCatalogIngredients } from "./recipeService";
 
-export async function listCatalogIngredients(): Promise<Ingredient[]> {
-  return listCatalogFromRecipes();
-}
+export { listCatalogIngredients, customIngredient };
 
-export async function listUserIngredients(_userId?: string): Promise<UserIngredient[]> {
-  return listPantry();
+export async function listUserIngredients(locale: Locale = "ko"): Promise<UserIngredient[]> {
+  const [pantry, catalog] = await Promise.all([Promise.resolve(listPantry()), listCatalogIngredients(locale)]);
+  const names = new Map(catalog.map((item) => [item.id, item]));
+  return pantry.map((item) => {
+    const fromCatalog = names.get(item.ingredient_id);
+    return fromCatalog
+      ? {
+          ...item,
+          name: fromCatalog.name,
+          category: fromCatalog.category || item.category,
+          default_unit: fromCatalog.default_unit || item.default_unit,
+        }
+      : item;
+  });
 }
 
 export async function upsertUserIngredient(input: {
@@ -18,8 +30,9 @@ export async function upsertUserIngredient(input: {
   unit: string;
   expiresAt?: string | null;
   category?: string;
+  locale?: Locale;
 }): Promise<void> {
-  const catalog = await listCatalogFromRecipes();
+  const catalog = await listCatalogIngredients(input.locale ?? "ko");
   const fromCatalog = catalog.find((item) => item.id === input.ingredientId);
   const fallback = input.name ? customIngredient(input.name, input.unit) : null;
   const ingredient = fromCatalog ?? fallback;

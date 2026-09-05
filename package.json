@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "sample-demo-recipes": "node scripts/sample-demo-recipes.mjs"
+    "sample-demo-recipes": "node scripts/sample-demo-recipes.mjs",
+    "seed-demo-recipes": "node scripts/seed-demo-recipes-supabase.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",

@@ -8,9 +8,11 @@ import {
   upsertUserIngredient,
 } from "../services/ingredientService";
 import { customIngredient } from "../data/recipeRepository";
+import { useLocale } from "../i18n/locale";
 import type { Ingredient, UserIngredient } from "../types/ingredient";
 
 export function Ingredients() {
+  const { locale, t } = useLocale();
   const [catalog, setCatalog] = useState<Ingredient[]>([]);
   const [items, setItems] = useState<UserIngredient[]>([]);
   const [query, setQuery] = useState("");
@@ -37,8 +39,8 @@ export function Ingredients() {
     setError("");
     try {
       const [nextCatalog, nextItems] = await Promise.all([
-        listCatalogIngredients(),
-        listUserIngredients(),
+        listCatalogIngredients(locale),
+        listUserIngredients(locale),
       ]);
       setCatalog(nextCatalog);
       setItems(nextItems);
@@ -47,7 +49,7 @@ export function Ingredients() {
         setUnit(nextCatalog[0].default_unit);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "재료를 불러오지 못했습니다.");
+      setError(err instanceof Error ? err.message : t("ingredientsLoadError"));
     } finally {
       setLoading(false);
     }
@@ -56,7 +58,7 @@ export function Ingredients() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [locale]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -78,6 +80,7 @@ export function Ingredients() {
           unit,
           expiresAt: expiresAt || null,
           category: target.category,
+          locale,
         });
       }
       setEditingId(null);
@@ -85,7 +88,7 @@ export function Ingredients() {
       setExpiresAt("");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "재료 저장에 실패했습니다.");
+      setError(err instanceof Error ? err.message : t("ingredientsSaveError"));
     }
   }
 
@@ -104,20 +107,18 @@ export function Ingredients() {
       await deleteUserIngredient(id);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "삭제에 실패했습니다.");
+      setError(err instanceof Error ? err.message : t("ingredientsDeleteError"));
     }
   }
 
   return (
     <main className="page pb-8">
-      <h1 className="text-3xl font-semibold tracking-tight">보유 재료</h1>
-      <p className="mt-2 text-sm text-muted">
-        이 기기에만 저장됩니다. 레시피 조정 시 없는 재료는 Claude가 대체안을 제안합니다.
-      </p>
+      <h1 className="text-3xl font-semibold tracking-tight">{t("ingredientsTitle")}</h1>
+      <p className="mt-2 text-sm text-muted">{t("ingredientsLead")}</p>
 
       <form className="mt-6 space-y-3 rounded-[1.5rem] border border-line bg-card p-4" onSubmit={onSubmit}>
         <div className="field">
-          <label htmlFor="query">재료 검색</label>
+          <label htmlFor="query">{t("ingredientsSearch")}</label>
           <input
             id="query"
             value={query}
@@ -125,7 +126,7 @@ export function Ingredients() {
               setQuery(event.target.value);
               setIngredientId("");
             }}
-            placeholder="chicken, onion, salt..."
+            placeholder={t("ingredientsSearchPlaceholder")}
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -148,7 +149,7 @@ export function Ingredients() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="field">
-            <label htmlFor="amount">보유량</label>
+            <label htmlFor="amount">{t("ingredientsAmount")}</label>
             <input
               id="amount"
               type="number"
@@ -160,12 +161,12 @@ export function Ingredients() {
             />
           </div>
           <div className="field">
-            <label htmlFor="unit">단위</label>
+            <label htmlFor="unit">{t("ingredientsUnit")}</label>
             <input id="unit" value={unit} onChange={(event) => setUnit(event.target.value)} required />
           </div>
         </div>
         <div className="field">
-          <label htmlFor="expires">유통기한 (선택)</label>
+          <label htmlFor="expires">{t("ingredientsExpires")}</label>
           <input
             id="expires"
             type="date"
@@ -174,7 +175,7 @@ export function Ingredients() {
           />
         </div>
         <button className="btn-primary w-full" type="submit">
-          {editingId ? "수정 저장" : `${selected?.name ?? "재료"} 추가`}
+          {editingId ? t("ingredientsSave") : `${selected?.name ?? t("navIngredients")} ${t("ingredientsAdd")}`}
         </button>
       </form>
 
@@ -188,7 +189,7 @@ export function Ingredients() {
         {loading ? (
           Array.from({ length: 3 }, (_, index) => <CardSkeleton key={index} />)
         ) : items.length === 0 ? (
-          <EmptyState title="아직 재료가 없습니다" body="데모 레시피에 있는 재료부터 등록해 보세요." />
+          <EmptyState title={t("ingredientsEmptyTitle")} body={t("ingredientsEmptyBody")} />
         ) : (
           items.map((item) => (
             <article key={item.id} className="rounded-[1.5rem] border border-line bg-card p-4">
@@ -198,15 +199,15 @@ export function Ingredients() {
                   <p className="mt-1 text-sm text-muted">
                     {item.amount}
                     {item.unit}
-                    {item.expires_at ? ` · ${item.expires_at}까지` : ""}
+                    {item.expires_at ? ` · ${item.expires_at} ${t("ingredientsUntil")}` : ""}
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <button type="button" className="btn-secondary !min-h-9 !px-3 text-xs" onClick={() => startEdit(item)}>
-                    수정
+                    {t("ingredientsEdit")}
                   </button>
                   <button type="button" className="btn-secondary !min-h-9 !px-3 text-xs" onClick={() => remove(item.id)}>
-                    삭제
+                    {t("ingredientsDelete")}
                   </button>
                 </div>
               </div>

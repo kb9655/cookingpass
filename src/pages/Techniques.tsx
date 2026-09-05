@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { TechniqueCard } from "../components/technique/TechniqueCard";
 import { CardSkeleton, EmptyState, ErrorState } from "../components/common/Feedback";
 import { useAuth } from "../hooks/useAuth";
+import { useLocale } from "../i18n/locale";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { getTechniqueProgress, listTechniques } from "../services/techniqueService";
 import type { Technique, TechniqueProgress, TechniqueProgressStatus } from "../types/technique";
 
 export function Techniques() {
   const { user } = useAuth();
+  const { t } = useLocale();
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [progress, setProgress] = useState<TechniqueProgress[]>([]);
   const [error, setError] = useState("");
@@ -26,7 +28,7 @@ export function Techniques() {
         setProgress(nextProgress);
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "스테이지를 불러오지 못했습니다.");
+        setError(err instanceof Error ? err.message : t("techniquesLoadError"));
       })
       .finally(() => setLoading(false));
   }
@@ -44,7 +46,7 @@ export function Techniques() {
 
   return (
     <main className="page">
-      <h1 className="text-3xl font-semibold tracking-tight">조리 기술</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">{t("techniquesTitle")}</h1>
       <p className="mt-2 text-sm text-muted">한 스테이지씩 익히고 클리어하세요.</p>
       {error ? <div className="mt-6"><ErrorState message={error} onRetry={load} /></div> : null}
       <div className="mt-6 grid gap-3">

@@ -1,3 +1,5 @@
+import type { Locale } from "../i18n/messages";
+
 export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
 
 export type Profile = {
@@ -6,6 +8,7 @@ export type Profile = {
   experience_level: ExperienceLevel;
   available_tools: string[];
   preferred_max_minutes: number | null;
+  preferred_locale: Locale;
 };
 
 export type RecommendationWeights = {

@@ -16,13 +16,48 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/techniques" element={<Techniques />} />
-        <Route path="/techniques/:id" element={<TechniqueDetail />} />
-        <Route path="/recipes" element={<Recipes />} />
-        <Route path="/recipes/:id" element={<RecipeDetail />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/techniques"
+          element={
+            <ProtectedRoute>
+              <Techniques />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/techniques/:id"
+          element={
+            <ProtectedRoute>
+              <TechniqueDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recipes"
+          element={
+            <ProtectedRoute>
+              <Recipes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/recipes/:id"
+          element={
+            <ProtectedRoute>
+              <RecipeDetail />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/cook/:id"
           element={
@@ -31,7 +66,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/ingredients" element={<Ingredients />} />
+        <Route
+          path="/ingredients"
+          element={
+            <ProtectedRoute>
+              <Ingredients />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/profile"
           element={

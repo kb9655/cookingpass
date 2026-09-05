@@ -1,10 +1,13 @@
 import { requireSupabase } from "../lib/supabase";
 import type { ExperienceLevel, Profile } from "../types/user";
 
+const PROFILE_COLUMNS =
+  "id, display_name, experience_level, available_tools, preferred_max_minutes, preferred_locale";
+
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await requireSupabase()
     .from("profiles")
-    .select("id, display_name, experience_level, available_tools, preferred_max_minutes")
+    .select(PROFILE_COLUMNS)
     .eq("id", userId)
     .maybeSingle();
 
@@ -14,13 +17,18 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 
 export async function updateProfile(
   userId: string,
-  patch: Partial<Pick<Profile, "display_name" | "experience_level" | "available_tools" | "preferred_max_minutes">>,
+  patch: Partial<
+    Pick<
+      Profile,
+      "display_name" | "experience_level" | "available_tools" | "preferred_max_minutes" | "preferred_locale"
+    >
+  >,
 ): Promise<Profile> {
   const { data, error } = await requireSupabase()
     .from("profiles")
     .update(patch)
     .eq("id", userId)
-    .select("id, display_name, experience_level, available_tools, preferred_max_minutes")
+    .select(PROFILE_COLUMNS)
     .single();
 
   if (error) throw error;

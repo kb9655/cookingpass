@@ -1,28 +1,30 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Carrot, ChefHat, House, UserRound, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
-
-const tabs = [
-  { to: "/", label: "홈", icon: House, end: true },
-  { to: "/techniques", label: "기술", icon: ChefHat },
-  { to: "/recipes", label: "레시피", icon: UtensilsCrossed },
-  { to: "/ingredients", label: "재료", icon: Carrot },
-  { to: "/profile", label: "프로필", icon: UserRound },
-];
+import { useLocale } from "../../i18n/locale";
 
 export function AppShell() {
   const location = useLocation();
   const { configured } = useAuth();
+  const { t } = useLocale();
   const hideNav =
     location.pathname.startsWith("/login") ||
     location.pathname.startsWith("/signup") ||
     location.pathname.startsWith("/cook/");
 
+  const tabs = [
+    { to: "/", label: t("navHome"), icon: House, end: true },
+    { to: "/techniques", label: t("navTechniques"), icon: ChefHat },
+    { to: "/recipes", label: t("navRecipes"), icon: UtensilsCrossed },
+    { to: "/ingredients", label: t("navIngredients"), icon: Carrot },
+    { to: "/profile", label: t("navProfile"), icon: UserRound },
+  ];
+
   return (
     <div className="min-h-[100dvh] bg-canvas text-ink">
       {!configured ? (
         <div className="bg-accent px-4 py-2 text-center text-sm text-white">
-          레시피·재료는 로컬 데모 데이터입니다. Claude 조정은 `.env`의 `ANTHROPIC_API_KEY`가 필요합니다.
+          {t("loginNeedSupabase")}
         </div>
       ) : null}
       <div className={hideNav ? "" : "pb-24"}>

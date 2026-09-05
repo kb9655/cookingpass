@@ -25,7 +25,7 @@ export default async (req: Request) => {
     return errorResponse("요청 데이터가 올바르지 않습니다.", 400);
   }
 
-  const { recipe_id, servings, notes, recipe, pantry } = parsedRequest.data;
+  const { recipe_id, servings, notes, locale, recipe, pantry } = parsedRequest.data;
   if (recipe.id !== recipe_id) {
     return errorResponse("레시피 식별자가 일치하지 않습니다.", 400);
   }
@@ -50,7 +50,9 @@ export default async (req: Request) => {
     "1) 원본 directions를 번호 있는 단계로 재구성하고, 한 단계에 한 가지 행동만 담으세요.",
     "2) notes에 적힌 수정 요청(맵기, 시간, 도구 등)을 단계와 재료에 반영하세요.",
     "3) 보유 재료에 없는 항목은 현실적인 대체 재료를 쓰고, substituted_for에 원래 재료 이름을 넣으세요.",
-    "단계는 한국어로 쉽게 쓰고, 재료 이름은 원문과 대체명을 명확히 남기세요.",
+    locale === "en"
+      ? "Write steps in clear English. Keep ingredient names explicit for originals and substitutes."
+      : "단계는 한국어로 쉽게 쓰고, 재료 이름은 원문과 대체명을 명확히 남기세요.",
     "technique_id는 제공된 기술 id만 사용하고, 없으면 null로 두세요.",
     "",
     `기존 레시피: ${recipe.name}`,

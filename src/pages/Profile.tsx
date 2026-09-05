@@ -4,7 +4,9 @@ import { useAuth } from "../hooks/useAuth";
 import { getTechniqueProgress, listTechniques } from "../services/techniqueService";
 import { listCookingHistory } from "../services/historyService";
 import { updateProfile } from "../services/profileService";
+import { LanguageToggle } from "../components/common/LanguageToggle";
 import { CardSkeleton, ErrorState, EmptyState } from "../components/common/Feedback";
+import { useLocale } from "../i18n/locale";
 import type { Technique, TechniqueProgress } from "../types/technique";
 import type { CookingHistory, ExperienceLevel } from "../types/user";
 
@@ -12,6 +14,7 @@ const TOOL_OPTIONS = ["칼", "도마", "프라이팬", "냄비", "주걱", "채�
 
 export function Profile() {
   const { user, profile, signOut, refreshProfile } = useAuth();
+  const { locale, t } = useLocale();
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [progress, setProgress] = useState<TechniqueProgress[]>([]);
   const [history, setHistory] = useState<CookingHistory[]>([]);
@@ -41,7 +44,7 @@ export function Profile() {
         setHistory(nextHistory);
       })
       .catch((err: unknown) => {
-        if (active) setError(err instanceof Error ? err.message : "프로필을 불러오지 못했습니다.");
+        if (active) setError(err instanceof Error ? err.message : t("profileLoadError"));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -64,13 +67,13 @@ export function Profile() {
       });
       await refreshProfile();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "프로필 저장에 실패했습니다.");
+      setError(err instanceof Error ? err.message : t("profileSaveError"));
     }
   }
 
   return (
     <main className="page pb-8">
-      <h1 className="text-3xl font-semibold tracking-tight">프로필</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">{t("profileTitle")}</h1>
       <p className="mt-2 text-sm text-muted">{profile?.display_name ?? user?.email}</p>
 
       {loading ? (
@@ -81,7 +84,7 @@ export function Profile() {
       ) : (
         <>
           <section className="mt-6 rounded-[1.5rem] border border-line bg-card p-5">
-            <p className="text-sm text-muted">학습 진행도</p>
+            <p className="text-sm text-muted">{t("profileProgress")}</p>
             <p className="mt-1 text-2xl font-semibold">{percent}%</p>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-line">
               <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
@@ -94,7 +97,11 @@ export function Profile() {
                   <li key={technique.id} className="flex items-center justify-between">
                     <span>{technique.name}</span>
                     <span className={status === "cleared" ? "text-accent" : "text-muted"}>
-                      {status === "cleared" ? "클리어" : status === "unlocked" ? "진행 가능" : "잠김"}
+                      {status === "cleared"
+                        ? t("profileCleared")
+                        : status === "unlocked"
+                          ? t("profileUnlocked")
+                          : t("profileLocked")}
                     </span>
                   </li>
                 );
@@ -103,20 +110,25 @@ export function Profile() {
           </section>
 
           <section className="mt-6 rounded-[1.5rem] border border-line bg-card p-5">
-            <h2 className="text-lg font-semibold">조리 설정</h2>
+            <h2 className="text-lg font-semibold">{t("profileSettings")}</h2>
+            <LanguageToggle className="mt-4" />
+          </section>
+
+          <section className="mt-6 rounded-[1.5rem] border border-line bg-card p-5">
+            <h2 className="text-lg font-semibold">{t("profileCooking")}</h2>
             <div className="field mt-4">
-              <label htmlFor="experience">경험 수준</label>
+              <label htmlFor="experience">{t("profileExperience")}</label>
               <select
                 id="experience"
                 value={experience}
                 onChange={(event) => setExperience(event.target.value as ExperienceLevel)}
               >
-                <option value="beginner">초급</option>
-                <option value="intermediate">중급</option>
-                <option value="advanced">고급</option>
+                <option value="beginner">{t("profileBeginner")}</option>
+                <option value="intermediate">{t("profileIntermediate")}</option>
+                <option value="advanced">{t("profileAdvanced")}</option>
               </select>
             </div>
-            <p className="mt-4 text-sm font-medium">사용 가능한 도구</p>
+            <p className="mt-4 text-sm font-medium">{t("profileTools")}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {TOOL_OPTIONS.map((tool) => {
                 const active = tools.includes(tool);
@@ -141,15 +153,15 @@ export function Profile() {
               })}
             </div>
             <button type="button" className="btn-secondary mt-4" onClick={savePrefs}>
-              설정 저장
+              {t("profileSave")}
             </button>
           </section>
 
           <section className="mt-6">
-            <h2 className="text-lg font-semibold">조리 기록</h2>
+            <h2 className="text-lg font-semibold">{t("profileHistory")}</h2>
             {history.length === 0 ? (
               <div className="mt-3">
-                <EmptyState title="아직 기록이 없습니다" body="레시피를 끝까지 따라가면 여기에 남습니다." />
+                <EmptyState title={t("profileNoHistoryTitle")} body={t("profileNoHistoryBody")} />
               </div>
             ) : (
               <ul className="mt-3 space-y-2">
@@ -161,7 +173,8 @@ export function Profile() {
                     >
                       <span>{item.recipe_name}</span>
                       <span className="text-muted">
-                        {item.completed ? "완료" : "중단"} · {new Date(item.cooked_at).toLocaleDateString("ko-KR")}
+                        {item.completed ? t("profileDone") : t("profileStopped")} ·{" "}
+                        {new Date(item.cooked_at).toLocaleDateString(locale === "en" ? "en-US" : "ko-KR")}
                       </span>
                     </Link>
                   </li>
@@ -179,7 +192,7 @@ export function Profile() {
       ) : null}
 
       <button type="button" className="btn-secondary mt-8 w-full" onClick={() => void signOut()}>
-        로그아웃
+        {t("profileLogout")}
       </button>
     </main>
   );

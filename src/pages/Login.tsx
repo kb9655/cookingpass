@@ -1,9 +1,12 @@
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { LanguageToggle } from "../components/common/LanguageToggle";
 import { useAuth } from "../hooks/useAuth";
+import { useLocale } from "../i18n/locale";
 
 export function Login() {
   const { user, signIn, configured } = useAuth();
+  const { t } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? "/";
@@ -12,7 +15,7 @@ export function Login() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  if (user) return <Navigate to={from} replace />;
+  if (user) return <Navigate to={from === "/login" ? "/" : from} replace />;
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -20,9 +23,9 @@ export function Login() {
     setSubmitting(true);
     try {
       await signIn(email, password);
-      navigate(from, { replace: true });
+      navigate(from === "/login" ? "/" : from, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
+      setError(err instanceof Error ? err.message : t("loginFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -30,11 +33,12 @@ export function Login() {
 
   return (
     <main className="page">
-      <h1 className="text-3xl font-semibold tracking-tight">로그인</h1>
-      <p className="mt-2 text-sm text-muted">학습 진행도와 재료 목록을 이어서 봅니다.</p>
+      <LanguageToggle />
+      <h1 className="mt-6 text-3xl font-semibold tracking-tight">{t("loginTitle")}</h1>
+      <p className="mt-2 text-sm text-muted">{t("loginLead")}</p>
       <form className="mt-8 space-y-4" onSubmit={onSubmit}>
         <div className="field">
-          <label htmlFor="email">이메일</label>
+          <label htmlFor="email">{t("loginEmail")}</label>
           <input
             id="email"
             type="email"
@@ -45,7 +49,7 @@ export function Login() {
           />
         </div>
         <div className="field">
-          <label htmlFor="password">비밀번호</label>
+          <label htmlFor="password">{t("loginPassword")}</label>
           <input
             id="password"
             type="password"
@@ -56,17 +60,15 @@ export function Login() {
           />
         </div>
         {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        {!configured ? (
-          <p className="text-sm text-muted">Supabase 환경 변수가 없어 로그인을 시험할 수 없습니다.</p>
-        ) : null}
+        {!configured ? <p className="text-sm text-muted">{t("loginNeedSupabase")}</p> : null}
         <button className="btn-primary w-full" type="submit" disabled={submitting || !configured}>
-          {submitting ? "확인 중" : "로그인"}
+          {submitting ? t("loginSubmitting") : t("loginSubmit")}
         </button>
       </form>
       <p className="mt-6 text-sm text-muted">
-        계정이 없나요?{" "}
+        {t("loginNoAccount")}{" "}
         <Link to="/signup" className="font-semibold text-accent">
-          회원가입
+          {t("loginSignup")}
         </Link>
       </p>
     </main>

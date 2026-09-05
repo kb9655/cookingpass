@@ -15,6 +15,7 @@ export type GenerateRecipeInput = {
   recipeId: string;
   servings: number;
   notes?: string;
+  locale?: "en" | "ko";
   recipe: {
     id: string;
     name: string;
@@ -53,6 +54,7 @@ export async function generateRecipe(input: GenerateRecipeInput): Promise<Adjust
       recipe_id: input.recipeId,
       servings: input.servings,
       notes: input.notes ?? "",
+      locale: input.locale ?? "ko",
       recipe: input.recipe,
       pantry: input.pantry,
     }),
