@@ -1,9 +1,53 @@
 import { z } from "zod";
 
+export const pantryItemSchema = z.object({
+  name: z.string().min(1),
+  amount: z.number(),
+  unit: z.string().min(1),
+});
+
+export const recipeSnapshotSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().optional().default(""),
+  servings: z.number().int().min(1).optional(),
+  required_tools: z.array(z.string()).optional().default([]),
+  ingredients: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        amount: z.number(),
+        unit: z.string().min(1),
+        notes: z.string().nullable().optional(),
+      }),
+    )
+    .min(1),
+  steps: z
+    .array(
+      z.object({
+        step_number: z.number().int().min(1),
+        instruction: z.string().min(1),
+        technique_id: z.string().nullable().optional(),
+      }),
+    )
+    .min(1),
+  techniques: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+      }),
+    )
+    .optional()
+    .default([]),
+});
+
 export const generateRecipeRequestSchema = z.object({
-  recipe_id: z.string().uuid(),
+  recipe_id: z.string().min(1),
   servings: z.number().int().min(1).max(8),
   notes: z.string().max(500).optional().default(""),
+  recipe: recipeSnapshotSchema,
+  pantry: z.array(pantryItemSchema).optional().default([]),
 });
 
 export const adjustedIngredientSchema = z.object({
@@ -17,7 +61,7 @@ export const adjustedIngredientSchema = z.object({
 export const adjustedStepSchema = z.object({
   step: z.number().int().min(1),
   instruction: z.string().min(1),
-  technique_id: z.string().uuid().nullable().optional(),
+  technique_id: z.string().nullable().optional(),
   ingredients: z.array(z.string()).optional(),
   tools: z.array(z.string()).optional(),
   time_minutes: z.number().nullable().optional(),

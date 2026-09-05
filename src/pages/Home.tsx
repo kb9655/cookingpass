@@ -65,14 +65,16 @@ export function Home() {
         </section>
       ) : (
         <section className="mt-8 rounded-[1.5rem] border border-line bg-card p-5">
-          <h2 className="text-lg font-semibold">학습을 저장하려면 로그인하세요</h2>
-          <p className="mt-2 text-sm text-muted">클리어 기록과 냉장고 재료는 계정에만 남습니다.</p>
+          <h2 className="text-lg font-semibold">데모 레시피로 Claude를 확인해 보세요</h2>
+          <p className="mt-2 text-sm text-muted">
+            보유 재료는 이 기기에 저장됩니다. 로그인 없이 레시피 단계화·수정·대체를 시험할 수 있습니다.
+          </p>
           <div className="mt-4 flex gap-2">
-            <Link to="/signup" className="btn-primary">
-              회원가입
+            <Link to="/recipes" className="btn-primary">
+              레시피 보기
             </Link>
-            <Link to="/login" className="btn-secondary">
-              로그인
+            <Link to="/ingredients" className="btn-secondary">
+              재료 등록
             </Link>
           </div>
         </section>

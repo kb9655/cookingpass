@@ -1,13 +1,9 @@
-import { generateRecipe } from "../lib/api";
+import { generateRecipe, type GenerateRecipeInput } from "../lib/api";
 import type { AdjustedRecipe } from "../types/recipe";
 
 const storageKey = (recipeId: string) => `cook:${recipeId}`;
 
-export async function requestAdjustedRecipe(input: {
-  recipeId: string;
-  servings: number;
-  notes?: string;
-}): Promise<AdjustedRecipe> {
+export async function requestAdjustedRecipe(input: GenerateRecipeInput): Promise<AdjustedRecipe> {
   const recipe = await generateRecipe(input);
   sessionStorage.setItem(
     storageKey(input.recipeId),

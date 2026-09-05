@@ -3,10 +3,11 @@ import { useSearchParams } from "react-router-dom";
 import { RecipeCard } from "../components/recipe/RecipeCard";
 import { CardSkeleton, ErrorState, EmptyState } from "../components/common/Feedback";
 import { useAuth } from "../hooks/useAuth";
-import { isSupabaseConfigured } from "../lib/supabase";
-import { listScoredRecipes, listRecipes } from "../services/recipeService";
+import { listParsedRecipes } from "../data/recipeRepository";
+import { listScoredRecipes } from "../services/recipeService";
 import { getTechniqueProgress } from "../services/techniqueService";
 import { listUserIngredients } from "../services/ingredientService";
+import { isSupabaseConfigured } from "../lib/supabase";
 import type { ScoredRecipe } from "../types/recipe";
 
 export function Recipes() {
@@ -14,42 +15,40 @@ export function Recipes() {
   const [params] = useSearchParams();
   const focusTechniqueId = params.get("technique");
   const [recipes, setRecipes] = useState<ScoredRecipe[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [loading, setLoading] = useState(true);
 
   function load() {
-    if (!isSupabaseConfigured) return;
     setLoading(true);
     setError("");
 
-    const task = user
-      ? Promise.all([
-          getTechniqueProgress(user.id),
-          listUserIngredients(user.id),
-        ]).then(([progress, pantry]) =>
-          listScoredRecipes({
-            progress,
-            pantry,
-            experienceLevel: profile?.experience_level ?? "beginner",
-            preferredMaxMinutes: profile?.preferred_max_minutes ?? null,
-            availableTools: profile?.available_tools ?? [],
-            focusTechniqueId,
-          }),
-        )
-      : listRecipes().then((items) =>
-          items.map((item) => ({
-            ...item,
-            score: 0,
-            skill_match: 0,
-            pantry_coverage: 0,
-            difficulty_fit: 0,
-            time_fit: 0,
-            tool_fit: 0,
-            relatedness: 0,
-          })),
-        );
+    const pantryTask = listUserIngredients();
+    const progressTask =
+      user && isSupabaseConfigured ? getTechniqueProgress(user.id) : Promise.resolve([]);
 
-    task
+    Promise.all([
+      listParsedRecipes(),
+      pantryTask,
+      progressTask,
+    ])
+      .then(([records, pantry, progress]) => {
+        setCategories(
+          [...new Set(records.map((record) => record.recipe.category).filter(Boolean))].sort(),
+        );
+        return listScoredRecipes({
+          progress,
+          pantry,
+          experienceLevel: profile?.experience_level ?? "beginner",
+          preferredMaxMinutes: profile?.preferred_max_minutes ?? null,
+          availableTools: profile?.available_tools ?? [],
+          focusTechniqueId,
+          query,
+          category,
+        });
+      })
       .then(setRecipes)
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : "레시피를 불러오지 못했습니다.");
@@ -60,7 +59,7 @@ export function Recipes() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, profile, focusTechniqueId]);
+  }, [user, profile, focusTechniqueId, query, category]);
 
   const highlighted = useMemo(
     () => (focusTechniqueId ? recipes.filter((item) => item.relatedness === 1) : []),
@@ -71,25 +70,46 @@ export function Recipes() {
     <main className="page">
       <h1 className="text-3xl font-semibold tracking-tight">레시피</h1>
       <p className="mt-2 text-sm text-muted">
-        {user
-          ? "클리어한 기술과 보유 재료를 기준으로 정렬합니다."
-          : "로그인하면 보유 재료와 학습 기록에 맞춰 추천합니다."}
+        데모 20종을 보유 재료와 추정 조리 기술로 정렬합니다. 재료를 등록하면 대체 검증에 쓰입니다.
       </p>
+
+      <div className="mt-5 space-y-3">
+        <div className="field">
+          <label htmlFor="recipe-query">검색</label>
+          <input
+            id="recipe-query"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="이름, 재료..."
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="recipe-category">카테고리</label>
+          <select
+            id="recipe-category"
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+          >
+            <option value="">전체</option>
+            {categories.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {error ? (
         <div className="mt-6">
           <ErrorState message={error} onRetry={load} />
         </div>
       ) : null}
       <div className="mt-6 grid gap-3">
-        {!isSupabaseConfigured ? (
-          <EmptyState
-            title="데이터베이스가 연결되지 않았습니다"
-            body=".env에 Supabase 값을 넣으면 추천 레시피가 나타납니다."
-          />
-        ) : loading ? (
+        {loading ? (
           Array.from({ length: 4 }, (_, index) => <CardSkeleton key={index} />)
         ) : recipes.length === 0 ? (
-          <EmptyState title="레시피가 없습니다" body="시드 데이터를 적용한 뒤 다시 열어 주세요." />
+          <EmptyState title="레시피가 없습니다" body="검색어나 카테고리를 바꿔 보세요." />
         ) : (
           recipes.map((recipe) => (
             <RecipeCard

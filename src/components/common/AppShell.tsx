@@ -22,7 +22,7 @@ export function AppShell() {
     <div className="min-h-[100dvh] bg-canvas text-ink">
       {!configured ? (
         <div className="bg-accent px-4 py-2 text-center text-sm text-white">
-          `.env`에 Supabase 값을 넣으면 로그인과 데이터가 연결됩니다.
+          레시피·재료는 로컬 데모 데이터입니다. Claude 조정은 `.env`의 `ANTHROPIC_API_KEY`가 필요합니다.
         </div>
       ) : null}
       <div className={hideNav ? "" : "pb-24"}>

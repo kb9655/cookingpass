@@ -1,5 +1,5 @@
 import type { AdjustedRecipe } from "../types/recipe";
-import { requireSupabase } from "./supabase";
+import { isSupabaseConfigured, requireSupabase } from "./supabase";
 
 export class ApiError extends Error {
   status: number;
@@ -11,34 +11,50 @@ export class ApiError extends Error {
   }
 }
 
-async function authHeaders(): Promise<HeadersInit> {
-  const supabase = requireSupabase();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.access_token) {
-    throw new ApiError("로그인이 필요합니다.", 401);
-  }
-
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${session.access_token}`,
-  };
-}
-
-export async function generateRecipe(input: {
+export type GenerateRecipeInput = {
   recipeId: string;
   servings: number;
   notes?: string;
-}): Promise<AdjustedRecipe> {
+  recipe: {
+    id: string;
+    name: string;
+    description: string;
+    servings: number;
+    required_tools: string[];
+    ingredients: Array<{ name: string; amount: number; unit: string; notes?: string | null }>;
+    steps: Array<{ step_number: number; instruction: string; technique_id?: string | null }>;
+    techniques: Array<{ id: string; name: string }>;
+  };
+  pantry: Array<{ name: string; amount: number; unit: string }>;
+};
+
+async function jsonHeaders(): Promise<HeadersInit> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (!isSupabaseConfigured) return headers;
+
+  try {
+    const {
+      data: { session },
+    } = await requireSupabase().auth.getSession();
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
+    }
+  } catch {
+    // Local recipe flow does not require auth.
+  }
+  return headers;
+}
+
+export async function generateRecipe(input: GenerateRecipeInput): Promise<AdjustedRecipe> {
   const response = await fetch("/api/generate-recipe", {
     method: "POST",
-    headers: await authHeaders(),
+    headers: await jsonHeaders(),
     body: JSON.stringify({
       recipe_id: input.recipeId,
       servings: input.servings,
       notes: input.notes ?? "",
+      recipe: input.recipe,
+      pantry: input.pantry,
     }),
   });
 
@@ -75,12 +91,9 @@ export async function resolveMediaUrl(input: {
   if (!input.mediaId && !input.storagePath) return null;
 
   try {
-    const headers = await authHeaders().catch(() => ({
-      "Content-Type": "application/json",
-    }));
     const response = await fetch("/api/media-url", {
       method: "POST",
-      headers,
+      headers: await jsonHeaders(),
       body: JSON.stringify({
         media_id: input.mediaId,
         storage_path: input.storagePath,

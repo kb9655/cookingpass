@@ -10,6 +10,9 @@ export type Recipe = {
   estimated_minutes: number;
   servings: number;
   required_tools: string[];
+  category: string;
+  subcategory: string;
+  source_dataset: string;
 };
 
 export type RecipeStep = {

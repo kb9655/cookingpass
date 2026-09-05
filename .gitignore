@@ -22,3 +22,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.tsbuildinfo
+
+# Large source datasets (demo sample is kept)
+resource_temp/1_Recipe_csv.csv

@@ -27,6 +27,7 @@ function skillMatch(
   progress: TechniqueProgress[],
 ): number {
   if (techniqueIds.length === 0) return 1;
+  if (progress.length === 0) return 0.6;
   const cleared = new Set(
     progress.filter((item) => item.status === "cleared").map((item) => item.technique_id),
   );

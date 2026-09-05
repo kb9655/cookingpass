@@ -1,6 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState, ErrorState, CardSkeleton } from "../components/common/Feedback";
-import { useAuth } from "../hooks/useAuth";
 import {
   deleteUserIngredient,
   listCatalogIngredients,
@@ -8,37 +7,38 @@ import {
   updateUserIngredient,
   upsertUserIngredient,
 } from "../services/ingredientService";
+import { customIngredient } from "../data/recipeRepository";
 import type { Ingredient, UserIngredient } from "../types/ingredient";
 
 export function Ingredients() {
-  const { user } = useAuth();
   const [catalog, setCatalog] = useState<Ingredient[]>([]);
   const [items, setItems] = useState<UserIngredient[]>([]);
   const [query, setQuery] = useState("");
   const [ingredientId, setIngredientId] = useState("");
   const [amount, setAmount] = useState("1");
-  const [unit, setUnit] = useState("개");
+  const [unit, setUnit] = useState("count");
   const [expiresAt, setExpiresAt] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const selected = catalog.find((item) => item.id === ingredientId);
+  const selected =
+    catalog.find((item) => item.id === ingredientId) ??
+    (query.trim() ? customIngredient(query, unit) : undefined);
 
   const filteredCatalog = useMemo(() => {
-    const q = query.trim();
+    const q = query.trim().toLowerCase();
     if (!q) return catalog.slice(0, 12);
-    return catalog.filter((item) => item.name.includes(q)).slice(0, 12);
+    return catalog.filter((item) => item.name.toLowerCase().includes(q)).slice(0, 12);
   }, [catalog, query]);
 
   async function load() {
-    if (!user) return;
     setLoading(true);
     setError("");
     try {
       const [nextCatalog, nextItems] = await Promise.all([
         listCatalogIngredients(),
-        listUserIngredients(user.id),
+        listUserIngredients(),
       ]);
       setCatalog(nextCatalog);
       setItems(nextItems);
@@ -56,11 +56,12 @@ export function Ingredients() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, []);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!user || !ingredientId) return;
+    const target = selected;
+    if (!target) return;
     setError("");
     try {
       if (editingId) {
@@ -71,11 +72,12 @@ export function Ingredients() {
         });
       } else {
         await upsertUserIngredient({
-          userId: user.id,
-          ingredientId,
+          ingredientId: target.id,
+          name: target.name,
           amount: Number(amount),
           unit,
           expiresAt: expiresAt || null,
+          category: target.category,
         });
       }
       setEditingId(null);
@@ -109,7 +111,9 @@ export function Ingredients() {
   return (
     <main className="page pb-8">
       <h1 className="text-3xl font-semibold tracking-tight">보유 재료</h1>
-      <p className="mt-2 text-sm text-muted">지금 있는 재료와 용량을 적어 두면 레시피 조정에 쓰입니다.</p>
+      <p className="mt-2 text-sm text-muted">
+        이 기기에만 저장됩니다. 레시피 조정 시 없는 재료는 Claude가 대체안을 제안합니다.
+      </p>
 
       <form className="mt-6 space-y-3 rounded-[1.5rem] border border-line bg-card p-4" onSubmit={onSubmit}>
         <div className="field">
@@ -117,8 +121,11 @@ export function Ingredients() {
           <input
             id="query"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="감자, 양파..."
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setIngredientId("");
+            }}
+            placeholder="chicken, onion, salt..."
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -181,7 +188,7 @@ export function Ingredients() {
         {loading ? (
           Array.from({ length: 3 }, (_, index) => <CardSkeleton key={index} />)
         ) : items.length === 0 ? (
-          <EmptyState title="아직 재료가 없습니다" body="자주 쓰는 재료부터 등록해 보세요." />
+          <EmptyState title="아직 재료가 없습니다" body="데모 레시피에 있는 재료부터 등록해 보세요." />
         ) : (
           items.map((item) => (
             <article key={item.id} className="rounded-[1.5rem] border border-line bg-card p-4">
