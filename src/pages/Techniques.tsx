@@ -47,24 +47,23 @@ export function Techniques() {
   return (
     <main className="page">
       <h1 className="text-3xl font-semibold tracking-tight">{t("techniquesTitle")}</h1>
-      <p className="mt-2 text-sm text-muted">한 스테이지씩 익히고 클리어하세요.</p>
+      <p className="mt-2 text-sm text-muted">{t("techniquesLead")}</p>
       {error ? <div className="mt-6"><ErrorState message={error} onRetry={load} /></div> : null}
-      <div className="mt-6 grid gap-3">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {!isSupabaseConfigured ? (
-          <EmptyState
-            title="데이터베이스가 연결되지 않았습니다"
-            body=".env에 VITE_SUPABASE_URL과 VITE_SUPABASE_ANON_KEY를 넣은 뒤 시드 SQL을 적용하세요."
-          />
+          <div className="col-span-2 sm:col-span-3">
+            <EmptyState
+              title="데이터베이스가 연결되지 않았습니다"
+              body=".env에 VITE_SUPABASE_URL과 VITE_SUPABASE_ANON_KEY를 넣은 뒤 시드 SQL을 적용하세요."
+            />
+          </div>
         ) : loading
-          ? Array.from({ length: 4 }, (_, index) => <CardSkeleton key={index} />)
+          ? Array.from({ length: 6 }, (_, index) => <CardSkeleton key={index} />)
           : techniques.map((technique) => (
               <TechniqueCard
                 key={technique.id}
                 technique={technique}
-                status={
-                  statusById.get(technique.id) ??
-                  (technique.stage_number === 1 ? "unlocked" : "locked")
-                }
+                status={statusById.get(technique.id) ?? "unlocked"}
               />
             ))}
       </div>

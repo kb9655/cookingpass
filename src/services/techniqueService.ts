@@ -93,15 +93,29 @@ export async function getTechniqueDetail(id: string): Promise<TechniqueDetail | 
 
 export async function markCleared(userId: string, techniqueId: string): Promise<void> {
   const supabase = requireSupabase();
-  const { error } = await supabase
+  const clearedAt = new Date().toISOString();
+  const { data, error } = await supabase
     .from("user_technique_progress")
     .update({
       status: "cleared",
-      cleared_at: new Date().toISOString(),
+      cleared_at: clearedAt,
     })
     .eq("user_id", userId)
     .eq("technique_id", techniqueId)
-    .eq("status", "unlocked");
+    .select("technique_id");
 
   if (error) throw error;
+  if (data && data.length > 0) return;
+
+  const { error: upsertError } = await supabase.from("user_technique_progress").upsert(
+    {
+      user_id: userId,
+      technique_id: techniqueId,
+      status: "cleared",
+      cleared_at: clearedAt,
+    },
+    { onConflict: "user_id,technique_id" },
+  );
+
+  if (upsertError) throw upsertError;
 }

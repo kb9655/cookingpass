@@ -2,6 +2,10 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ErrorState, Skeleton } from "../components/common/Feedback";
 import { StarRating } from "../components/common/StarRating";
+import {
+  IngredientCheckList,
+  type IngredientCheck,
+} from "../components/recipe/IngredientCheckList";
 import { getRecipeDetail } from "../services/recipeService";
 import { listUserIngredients } from "../services/ingredientService";
 import { requestAdjustedRecipe } from "../services/aiService";
@@ -15,6 +19,7 @@ export function RecipeDetail() {
   const { locale, t } = useLocale();
   const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
   const [pantry, setPantry] = useState<UserIngredient[]>([]);
+  const [checks, setChecks] = useState<IngredientCheck[]>([]);
   const [servings, setServings] = useState(2);
   const [notes, setNotes] = useState("");
   const [adjusted, setAdjusted] = useState<AdjustedRecipe | null>(null);
@@ -30,7 +35,7 @@ export function RecipeDetail() {
     let active = true;
     setLoading(true);
     setAdjusted(null);
-    Promise.all([getRecipeDetail(id, locale), listUserIngredients(locale)])
+    Promise.all([getRecipeDetail(id, locale), listUserIngredients("ko")])
       .then(([next, nextPantry]) => {
         if (!active) return;
         setRecipe(next);
@@ -81,11 +86,13 @@ export function RecipeDetail() {
             name: technique.name,
           })),
         },
-        pantry: pantry.map((item) => ({
-          name: item.name,
-          amount: item.amount,
-          unit: item.unit,
-        })),
+        pantry: checks
+          .filter((item) => item.selected)
+          .map((item) => ({
+            name: item.name,
+            amount: item.amount,
+            unit: item.unit,
+          })),
       });
       setAdjusted(next);
     } catch (err) {
@@ -134,18 +141,9 @@ export function RecipeDetail() {
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold">{t("recipeIngredients")}</h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          {recipe.ingredients.map((item) => (
-            <li key={item.ingredient_id + item.name} className="flex justify-between border-b border-line py-2">
-              <span>{item.name}</span>
-              <span className="text-muted">
-                {item.amount || ""}
-                {item.amount ? " " : ""}
-                {item.unit}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3">
+          <IngredientCheckList ingredients={recipe.ingredients} pantry={pantry} onChange={setChecks} />
+        </div>
       </section>
 
       <section className="mt-8">
@@ -182,7 +180,7 @@ export function RecipeDetail() {
       <form className="mt-8 space-y-4 rounded-[1.5rem] border border-line bg-card p-4" onSubmit={onAdjust}>
         <h2 className="text-lg font-semibold">{t("recipeAdjustTitle")}</h2>
         <p className="text-sm text-muted">
-          {t("recipePantryCount", { n: pantry.length })}{" "}
+          {t("recipePantryCount", { n: checks.filter((item) => item.selected).length })}{" "}
           <Link to="/ingredients" className="text-accent underline">
             {t("recipeRegisterIngredients")}
           </Link>

@@ -9,7 +9,7 @@ export type RecipeDataset = {
 export const RECIPE_DATASETS: RecipeDataset[] = [
   {
     id: "demo-20",
-    file: "/datasets/demo_recipes_20.csv",
+    file: "/datasets/demo_recipes_20-ko.csv",
     parser: "title-category-json-arrays",
   },
 ];

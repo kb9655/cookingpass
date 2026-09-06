@@ -18,46 +18,11 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/techniques"
-          element={
-            <ProtectedRoute>
-              <Techniques />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/techniques/:id"
-          element={
-            <ProtectedRoute>
-              <TechniqueDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/recipes"
-          element={
-            <ProtectedRoute>
-              <Recipes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/recipes/:id"
-          element={
-            <ProtectedRoute>
-              <RecipeDetail />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/" element={<Home />} />
+        <Route path="/techniques" element={<Techniques />} />
+        <Route path="/techniques/:id" element={<TechniqueDetail />} />
+        <Route path="/recipes" element={<Recipes />} />
+        <Route path="/recipes/:id" element={<RecipeDetail />} />
         <Route
           path="/cook/:id"
           element={

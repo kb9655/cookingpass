@@ -34,7 +34,7 @@ export function TechniqueDetail() {
         if (!active) return;
         setDetail(next);
         const found = progress.find((item) => item.technique_id === id);
-        setStatus(found?.status ?? (next?.stage_number === 1 ? "unlocked" : "locked"));
+        setStatus(found?.status ?? "unlocked");
       })
       .catch((err: unknown) => {
         if (active) setError(err instanceof Error ? err.message : "학습 자료를 불러오지 못했습니다.");
@@ -179,8 +179,6 @@ export function TechniqueDetail() {
 
       {status === "cleared" ? (
         <p className="mt-8 text-sm font-semibold text-accent">이 스테이지는 클리어했습니다.</p>
-      ) : status === "locked" ? (
-        <p className="mt-8 text-sm text-muted">이전 스테이지를 먼저 클리어하세요.</p>
       ) : (
         <button className="btn-primary mt-8 w-full" type="button" onClick={onClear} disabled={saving}>
           {saving ? "저장 중" : "학습 완료"}

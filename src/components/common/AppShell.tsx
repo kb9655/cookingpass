@@ -1,13 +1,13 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Carrot, ChefHat, House, UserRound, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useLocale } from "../../i18n/locale";
 
 export function AppShell() {
   const location = useLocation();
-  const { configured } = useAuth();
+  const { configured, user, profile } = useAuth();
   const { t } = useLocale();
-  const hideNav =
+  const hideChrome =
     location.pathname.startsWith("/login") ||
     location.pathname.startsWith("/signup") ||
     location.pathname.startsWith("/cook/");
@@ -27,10 +27,28 @@ export function AppShell() {
           {t("loginNeedSupabase")}
         </div>
       ) : null}
-      <div className={hideNav ? "" : "pb-24"}>
+      {hideChrome ? null : (
+        <header className="sticky top-0 z-20 border-b border-line bg-card/95 backdrop-blur-sm">
+          <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
+            <Link to="/" className="text-sm font-semibold">
+              Cooking Pass
+            </Link>
+            {user ? (
+              <Link to="/profile" className="text-sm font-medium text-accent">
+                {profile?.display_name ?? t("navProfile")}
+              </Link>
+            ) : (
+              <Link to="/login" className="text-sm font-semibold text-accent">
+                {t("headerLogin")}
+              </Link>
+            )}
+          </div>
+        </header>
+      )}
+      <div className={hideChrome ? "" : "pb-24"}>
         <Outlet />
       </div>
-      {hideNav ? null : (
+      {hideChrome ? null : (
         <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-card/95 backdrop-blur-sm">
           <ul className="mx-auto grid max-w-lg grid-cols-5">
             {tabs.map((tab) => (

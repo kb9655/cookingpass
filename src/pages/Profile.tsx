@@ -92,16 +92,13 @@ export function Profile() {
             <ul className="mt-4 space-y-2 text-sm">
               {techniques.map((technique) => {
                 const status =
-                  progress.find((item) => item.technique_id === technique.id)?.status ?? "locked";
+                  progress.find((item) => item.technique_id === technique.id)?.status ?? "unlocked";
+                const cleared = status === "cleared";
                 return (
                   <li key={technique.id} className="flex items-center justify-between">
                     <span>{technique.name}</span>
-                    <span className={status === "cleared" ? "text-accent" : "text-muted"}>
-                      {status === "cleared"
-                        ? t("profileCleared")
-                        : status === "unlocked"
-                          ? t("profileUnlocked")
-                          : t("profileLocked")}
+                    <span className={cleared ? "text-accent" : "text-muted"}>
+                      {cleared ? t("profileCleared") : t("profileUnlearned")}
                     </span>
                   </li>
                 );

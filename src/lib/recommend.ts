@@ -31,14 +31,8 @@ function skillMatch(
   const cleared = new Set(
     progress.filter((item) => item.status === "cleared").map((item) => item.technique_id),
   );
-  const unlocked = new Set(
-    progress
-      .filter((item) => item.status === "cleared" || item.status === "unlocked")
-      .map((item) => item.technique_id),
-  );
   const clearedCount = techniqueIds.filter((id) => cleared.has(id)).length;
-  const missingRequired = techniqueIds.filter((id) => !unlocked.has(id)).length;
-  return clamp01(clearedCount / techniqueIds.length - missingRequired * 0.15);
+  return clamp01(clearedCount / techniqueIds.length);
 }
 
 function amountsCompatible(have: number, need: number): boolean {

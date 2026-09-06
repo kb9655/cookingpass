@@ -62,6 +62,11 @@ export async function deleteUserIngredient(id: string): Promise<void> {
   deletePantryItem(id);
 }
 
+export async function deleteUserIngredientByIngredientId(ingredientId: string): Promise<void> {
+  const existing = listPantry().find((item) => item.ingredient_id === ingredientId);
+  if (existing) deletePantryItem(existing.id);
+}
+
 export function toRecipeIngredients(
   rows: {
     amount: number;

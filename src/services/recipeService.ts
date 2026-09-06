@@ -25,6 +25,10 @@ function pickTranslation<T extends { locale: string }>(
   return rows?.find((row) => row.locale === locale) ?? rows?.find((row) => row.locale === "en");
 }
 
+function pickKorean<T extends { locale: string }>(rows: T[] | null | undefined): T | undefined {
+  return rows?.find((row) => row.locale === "ko") ?? rows?.[0];
+}
+
 function localizeRecipe(
   row: {
     id: string;
@@ -94,7 +98,7 @@ export async function listRecipeCategories(locale: Locale = "ko"): Promise<strin
   );
 }
 
-export async function listCatalogIngredients(locale: Locale = "ko"): Promise<Ingredient[]> {
+export async function listCatalogIngredients(_locale: Locale = "ko"): Promise<Ingredient[]> {
   const { data, error } = await requireSupabase()
     .from("ingredients")
     .select("id, name, default_unit, category, ingredient_translations(locale, name)")
@@ -109,7 +113,7 @@ export async function listCatalogIngredients(locale: Locale = "ko"): Promise<Ing
     ingredient_translations: NameTranslation[] | null;
   }>).map((row) => ({
     id: row.id,
-    name: pickTranslation(row.ingredient_translations, locale)?.name ?? row.name,
+    name: pickKorean(row.ingredient_translations)?.name ?? row.name,
     default_unit: row.default_unit,
     category: row.category,
   }));
@@ -161,7 +165,7 @@ export async function getRecipeDetail(id: string, locale: Locale = "ko"): Promis
     const names = (ingredient?.ingredient_translations ?? []) as NameTranslation[];
     return {
       ingredient_id: row.ingredient_id,
-      name: pickTranslation(names, locale)?.name ?? ingredient?.name ?? "",
+      name: pickKorean(names)?.name ?? ingredient?.name ?? "",
       amount: Number(row.amount),
       unit: row.unit,
       notes: row.notes,
@@ -174,7 +178,7 @@ export async function getRecipeDetail(id: string, locale: Locale = "ko"): Promis
     recipe_id: row.recipe_id,
     step_number: row.step_number,
     instruction:
-      pickTranslation(row.recipe_step_translations as Array<{ locale: string; instruction: string }>, locale)
+      pickKorean(row.recipe_step_translations as Array<{ locale: string; instruction: string }>)
         ?.instruction ?? row.instruction,
     technique_id: row.technique_id,
   }));
