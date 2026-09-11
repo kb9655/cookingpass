@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorState, Skeleton } from "../components/common/Feedback";
 import { StarRating } from "../components/common/StarRating";
 import {
@@ -10,19 +10,21 @@ import { getRecipeDetail } from "../services/recipeService";
 import { listUserIngredients } from "../services/ingredientService";
 import { requestAdjustedRecipe } from "../services/aiService";
 import { ApiError } from "../lib/api";
+import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
-import type { AdjustedRecipe, RecipeDetail } from "../types/recipe";
+import type { RecipeDetail } from "../types/recipe";
 import type { UserIngredient } from "../types/ingredient";
 
 export function RecipeDetail() {
   const { id = "" } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { locale, t } = useLocale();
   const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
   const [pantry, setPantry] = useState<UserIngredient[]>([]);
   const [checks, setChecks] = useState<IngredientCheck[]>([]);
   const [servings, setServings] = useState(2);
   const [notes, setNotes] = useState("");
-  const [adjusted, setAdjusted] = useState<AdjustedRecipe | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [adjusting, setAdjusting] = useState(false);
@@ -34,7 +36,6 @@ export function RecipeDetail() {
     }
     let active = true;
     setLoading(true);
-    setAdjusted(null);
     Promise.all([getRecipeDetail(id, locale), listUserIngredients("ko")])
       .then(([next, nextPantry]) => {
         if (!active) return;
@@ -59,7 +60,7 @@ export function RecipeDetail() {
     setAdjusting(true);
     setError("");
     try {
-      const next = await requestAdjustedRecipe({
+      await requestAdjustedRecipe({
         recipeId: recipe.id,
         servings,
         notes,
@@ -94,7 +95,11 @@ export function RecipeDetail() {
             unit: item.unit,
           })),
       });
-      setAdjusted(next);
+      if (user) {
+        navigate(`/cook/${recipe.id}`);
+      } else {
+        navigate("/login", { state: { from: `/cook/${recipe.id}` } });
+      }
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -214,65 +219,6 @@ export function RecipeDetail() {
           {adjusting ? t("recipeAdjustingBtn") : t("recipeAdjustSubmit")}
         </button>
       </form>
-
-      {adjusted ? (
-        <section className="mt-8 space-y-6 rounded-[1.5rem] border border-accent/30 bg-card p-4">
-          <div>
-            <p className="text-xs font-semibold text-accent">{t("recipeClaudeResult")}</p>
-            <h2 className="mt-1 text-xl font-semibold">{adjusted.title}</h2>
-            <p className="mt-1 text-sm text-muted">{t("recipeServings", { n: adjusted.servings })}</p>
-            {adjusted.notes ? <p className="mt-2 text-sm text-muted">{adjusted.notes}</p> : null}
-          </div>
-
-          {adjusted.missing_or_substitutions?.length ? (
-            <div>
-              <h3 className="text-sm font-semibold">{t("recipeSubs")}</h3>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
-                {adjusted.missing_or_substitutions.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div>
-            <h3 className="text-sm font-semibold">{t("recipeAdjustedIngredients")}</h3>
-            <ul className="mt-2 space-y-2 text-sm">
-              {adjusted.ingredients.map((item) => (
-                <li key={`${item.name}-${item.substituted_for ?? ""}`} className="border-b border-line py-2">
-                  <div className="flex justify-between gap-3">
-                    <span>{item.name}</span>
-                    <span className="text-muted">
-                      {item.amount} {item.unit}
-                    </span>
-                  </div>
-                  {item.substituted_for ? (
-                    <p className="mt-1 text-xs text-accent">
-                      {t("recipeSubstitute")}: {item.substituted_for}
-                    </p>
-                  ) : null}
-                  {item.note ? <p className="mt-1 text-xs text-muted">{item.note}</p> : null}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold">{t("recipeAdjustedSteps")}</h3>
-            <ol className="mt-2 space-y-3 text-sm">
-              {adjusted.steps.map((step) => (
-                <li key={step.step}>
-                  <span className="font-medium">{step.step}. </span>
-                  {step.instruction}
-                  {step.warnings?.length ? (
-                    <p className="mt-1 text-xs text-red-700">{step.warnings.join(" · ")}</p>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-      ) : null}
     </main>
   );
 }

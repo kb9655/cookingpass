@@ -2,15 +2,14 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Carrot, ChefHat, House, UserRound, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useLocale } from "../../i18n/locale";
+import { RecommendPrompt } from "./RecommendPrompt";
 
 export function AppShell() {
   const location = useLocation();
   const { configured, user, profile } = useAuth();
   const { t } = useLocale();
   const hideChrome =
-    location.pathname.startsWith("/login") ||
-    location.pathname.startsWith("/signup") ||
-    location.pathname.startsWith("/cook/");
+    location.pathname.startsWith("/login") || location.pathname.startsWith("/signup");
 
   const tabs = [
     { to: "/", label: t("navHome"), icon: House, end: true },
@@ -48,6 +47,7 @@ export function AppShell() {
       <div className={hideChrome ? "" : "pb-24"}>
         <Outlet />
       </div>
+      <RecommendPrompt />
       {hideChrome ? null : (
         <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-card/95 backdrop-blur-sm">
           <ul className="mx-auto grid max-w-lg grid-cols-5">

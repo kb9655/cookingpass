@@ -23,6 +23,7 @@ export function Login() {
     setSubmitting(true);
     try {
       await signIn(email, password);
+      sessionStorage.setItem("cookingpass:just-logged-in", "1");
       navigate(from === "/login" ? "/" : from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("loginFailed"));

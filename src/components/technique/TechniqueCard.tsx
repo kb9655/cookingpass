@@ -2,13 +2,16 @@ import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLocale } from "../../i18n/locale";
 import type { Technique, TechniqueProgressStatus } from "../../types/technique";
+import { ScoreStars } from "./ScoreStars";
 
 export function TechniqueCard({
   technique,
   status,
+  scores,
 }: {
   technique: Technique;
   status: TechniqueProgressStatus;
+  scores?: number[] | null;
 }) {
   const { t } = useLocale();
   const cleared = status === "cleared";
@@ -25,7 +28,12 @@ export function TechniqueCard({
         <p className="text-xs font-medium text-muted">
           {String(technique.stage_number).padStart(2, "0")}
         </p>
-        <h2 className="text-base font-semibold leading-snug">{technique.name}</h2>
+        <div>
+          <h2 className="text-base font-semibold leading-snug">{technique.name}</h2>
+          <div className="mt-2">
+            <ScoreStars scores={scores} label={t("techniquesScoreLabel")} />
+          </div>
+        </div>
       </article>
     </Link>
   );

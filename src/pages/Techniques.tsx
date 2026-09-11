@@ -4,7 +4,12 @@ import { CardSkeleton, EmptyState, ErrorState } from "../components/common/Feedb
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
 import { isSupabaseConfigured } from "../lib/supabase";
-import { getTechniqueProgress, listTechniques } from "../services/techniqueService";
+import {
+  getTechniqueProgress,
+  listChildTechniquesByParents,
+  listTechniques,
+  scoresForTechnique,
+} from "../services/techniqueService";
 import type { Technique, TechniqueProgress, TechniqueProgressStatus } from "../types/technique";
 
 export function Techniques() {
@@ -12,6 +17,7 @@ export function Techniques() {
   const { t } = useLocale();
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [progress, setProgress] = useState<TechniqueProgress[]>([]);
+  const [childIdsByParent, setChildIdsByParent] = useState<Record<string, string[]>>({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(isSupabaseConfigured);
 
@@ -23,8 +29,15 @@ export function Techniques() {
       listTechniques(),
       user ? getTechniqueProgress(user.id) : Promise.resolve([]),
     ])
-      .then(([nextTechniques, nextProgress]) => {
+      .then(async ([nextTechniques, nextProgress]) => {
+        const children = await listChildTechniquesByParents(nextTechniques.map((item) => item.id));
+        const nextChildren: Record<string, string[]> = {};
+        for (const child of children) {
+          if (!child.parent_id) continue;
+          nextChildren[child.parent_id] = [...(nextChildren[child.parent_id] ?? []), child.id];
+        }
         setTechniques(nextTechniques);
+        setChildIdsByParent(nextChildren);
         setProgress(nextProgress);
       })
       .catch((err: unknown) => {
@@ -64,6 +77,7 @@ export function Techniques() {
                 key={technique.id}
                 technique={technique}
                 status={statusById.get(technique.id) ?? "unlocked"}
+                scores={scoresForTechnique(technique.id, childIdsByParent[technique.id] ?? [], progress)}
               />
             ))}
       </div>
