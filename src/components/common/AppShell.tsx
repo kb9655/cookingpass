@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { Carrot, ChefHat, House, UserRound, UtensilsCrossed } from "lucide-react";
+import { ChefHat, House, UserRound, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useLocale } from "../../i18n/locale";
 import { RecommendPrompt } from "./RecommendPrompt";
@@ -18,7 +18,6 @@ export function AppShell() {
     { to: "/", label: t("navHome"), icon: House, end: true },
     { to: "/techniques", label: t("navTechniques"), icon: ChefHat },
     { to: "/recipes", label: t("navRecipes"), icon: UtensilsCrossed },
-    { to: "/ingredients", label: t("navIngredients"), icon: Carrot },
     { to: "/profile", label: t("navProfile"), icon: UserRound },
   ];
 
@@ -53,7 +52,7 @@ export function AppShell() {
       {hideChrome ? null : <RecommendPrompt />}
       {hideChrome ? null : (
         <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm">
-          <ul className="mx-auto grid max-w-lg grid-cols-5">
+          <ul className="mx-auto grid max-w-lg grid-cols-4">
             {tabs.map((tab) => (
               <li key={tab.to}>
                 <NavLink

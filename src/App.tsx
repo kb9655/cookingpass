@@ -9,7 +9,6 @@ import { TechniqueDetail } from "./pages/TechniqueDetail";
 import { Recipes } from "./pages/Recipes";
 import { RecipeDetail } from "./pages/RecipeDetail";
 import { Cooking } from "./pages/Cooking";
-import { Ingredients } from "./pages/Ingredients";
 import { Profile } from "./pages/Profile";
 
 export default function App() {
@@ -28,14 +27,6 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Cooking />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/ingredients"
-          element={
-            <ProtectedRoute>
-              <Ingredients />
             </ProtectedRoute>
           }
         />

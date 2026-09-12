@@ -88,6 +88,8 @@ export async function generateRecipe(input: GenerateRecipeInput): Promise<Adjust
 export async function evaluateTechnique(input: {
   techniqueId: string;
   photos: Array<{ step_number: number; mime_type: "image/jpeg" | "image/png" | "image/webp"; data: string }>;
+  stepNumber?: number;
+  persistProgress?: boolean;
 }): Promise<TechniqueEvaluation> {
   const response = await fetch("/api/evaluate-technique", {
     method: "POST",
@@ -95,6 +97,8 @@ export async function evaluateTechnique(input: {
     body: JSON.stringify({
       technique_id: input.techniqueId,
       photos: input.photos,
+      step_number: input.stepNumber,
+      persist_progress: input.persistProgress ?? false,
     }),
   });
 

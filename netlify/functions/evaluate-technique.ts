@@ -54,13 +54,13 @@ export default async (req: Request) => {
     return errorResponse("사진과 기술 정보가 올바르지 않습니다.", 400);
   }
 
-  const { technique_id, photos } = parsedRequest.data;
+  const { technique_id, photos, step_number, persist_progress } = parsedRequest.data;
   const apiKey = env("ANTHROPIC_API_KEY");
   if (!apiKey) {
     return errorResponse("Claude API 키가 설정되지 않았습니다. .env의 ANTHROPIC_API_KEY를 확인하세요.", 500);
   }
 
-  const [{ data: technique, error: techniqueError }, { data: criteriaRows, error: criteriaError }] =
+  const [{ data: technique, error: techniqueError }, { data: criteriaRows, error: criteriaError }, { data: stepRows }] =
     await Promise.all([
       supabase
         .from("techniques")
@@ -72,6 +72,11 @@ export default async (req: Request) => {
         .select("id, sort_order, name, check_hint, is_safety")
         .eq("technique_id", technique_id)
         .order("sort_order", { ascending: true }),
+      supabase
+        .from("technique_steps")
+        .select("step_number, title, instruction")
+        .eq("technique_id", technique_id)
+        .order("step_number", { ascending: true }),
     ]);
 
   if (techniqueError || criteriaError) {
@@ -85,6 +90,9 @@ export default async (req: Request) => {
   }
 
   const row = technique as TechniqueRow;
+  const currentStep = step_number
+    ? (stepRows ?? []).find((step) => step.step_number === step_number)
+    : undefined;
   const prompt = [
     "당신은 초심자 요리 연습의 부드러운 코치입니다.",
     "사진에 보이는 것만 보고 세 항목을 각각 1, 2, 3점으로 매기세요.",
@@ -93,6 +101,9 @@ export default async (req: Request) => {
     "사진에 없는 내용은 추측하지 말고, 보이는 범위에서 관대하게 평가하세요.",
     "피드백은 짧은 한국어 한 줄로, 초심자가 다음 연습 포인트를 알게 하세요.",
     `학습: ${row.name}`,
+    currentStep
+      ? `이번 평가는 ${currentStep.step_number}단계 사진만 봅니다. ${currentStep.title ?? ""} ${currentStep.instruction}`.trim()
+      : "",
     row.target_size ? `다지기 목표 크기 참고: ${row.target_size}` : "",
     row.capture_hint ? `촬영 안내: ${row.capture_hint}` : "",
     "평가 항목:",
@@ -210,13 +221,15 @@ export default async (req: Request) => {
     if (upsertError) throw upsertError;
   }
 
-  try {
-    await upsertProgress(technique_id, passed);
-    if (row.parent_id) {
-      await upsertProgress(row.parent_id, passed);
+  if (persist_progress) {
+    try {
+      await upsertProgress(technique_id, passed);
+      if (row.parent_id) {
+        await upsertProgress(row.parent_id, passed);
+      }
+    } catch {
+      return errorResponse("학습 진행도를 저장하지 못했습니다.", 500);
     }
-  } catch {
-    return errorResponse("학습 진행도를 저장하지 못했습니다.", 500);
   }
 
   return json({

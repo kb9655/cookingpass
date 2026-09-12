@@ -90,6 +90,8 @@ export const evaluatePhotoSchema = z.object({
 export const evaluateTechniqueRequestSchema = z.object({
   technique_id: z.string().uuid(),
   photos: z.array(evaluatePhotoSchema).min(1).max(4),
+  step_number: z.number().int().min(1).optional(),
+  persist_progress: z.boolean().optional(),
 });
 
 export const evaluationItemSchema = z.object({

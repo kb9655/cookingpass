@@ -185,10 +185,7 @@ export function RecipeDetail() {
       <form className="mt-8 space-y-4 rounded-[1.5rem] border border-line bg-card p-4" onSubmit={onAdjust}>
         <h2 className="text-lg font-semibold">{t("recipeAdjustTitle")}</h2>
         <p className="text-sm text-muted">
-          {t("recipePantryCount", { n: checks.filter((item) => item.selected).length })}{" "}
-          <Link to="/ingredients" className="text-accent underline">
-            {t("recipeRegisterIngredients")}
-          </Link>
+          {t("recipePantryCount", { n: checks.filter((item) => item.selected).length })}
         </p>
         <div className="field">
           <label htmlFor="servings">{t("recipeServingsLabel")}</label>

@@ -108,33 +108,45 @@ export async function getTechniqueDetail(id: string): Promise<TechniqueDetail | 
   };
 }
 
-export async function markCleared(userId: string, techniqueId: string): Promise<void> {
+export async function saveTechniqueScores(
+  userId: string,
+  techniqueId: string,
+  scores: number[],
+  passed: boolean,
+  parentId?: string | null,
+): Promise<void> {
   const supabase = requireSupabase();
-  const clearedAt = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("user_technique_progress")
-    .update({
-      status: "cleared",
-      cleared_at: clearedAt,
-    })
-    .eq("user_id", userId)
-    .eq("technique_id", techniqueId)
-    .select("technique_id");
+  const clearedAt = passed ? new Date().toISOString() : null;
 
-  if (error) throw error;
-  if (data && data.length > 0) return;
-
-  const { error: upsertError } = await supabase.from("user_technique_progress").upsert(
-    {
+  async function upsert(targetId: string) {
+    const payload = {
       user_id: userId,
-      technique_id: techniqueId,
-      status: "cleared",
+      technique_id: targetId,
+      status: passed ? "cleared" : "unlocked",
       cleared_at: clearedAt,
-    },
-    { onConflict: "user_id,technique_id" },
-  );
+      last_item_scores: scores,
+    };
+    const { data, error } = await supabase
+      .from("user_technique_progress")
+      .update({
+        status: payload.status,
+        cleared_at: payload.cleared_at,
+        last_item_scores: payload.last_item_scores,
+      })
+      .eq("user_id", userId)
+      .eq("technique_id", targetId)
+      .select("technique_id");
+    if (error) throw error;
+    if (data && data.length > 0) return;
 
-  if (upsertError) throw upsertError;
+    const { error: upsertError } = await supabase
+      .from("user_technique_progress")
+      .upsert(payload, { onConflict: "user_id,technique_id" });
+    if (upsertError) throw upsertError;
+  }
+
+  await upsert(techniqueId);
+  if (parentId) await upsert(parentId);
 }
 
 export function scoresForTechnique(
