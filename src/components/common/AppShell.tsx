@@ -53,9 +53,9 @@ export function AppShell() {
       <div className={hideTabs ? "" : "pb-24"}>
         <Outlet />
       </div>
-      {hideTabs ? null : <RecommendPrompt />}
+      {isAuthPage ? null : <RecommendPrompt />}
       {hideTabs ? null : (
-        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm">
+        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_0_rgb(215_224_219_/_0.7)] backdrop-blur-sm">
           <ul className="mx-auto grid max-w-lg grid-cols-4">
             {tabs.map((tab) => (
               <li key={tab.to}>

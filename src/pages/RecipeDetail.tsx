@@ -182,7 +182,7 @@ export function RecipeDetail() {
         )}
       </section>
 
-      <form className="mt-8 space-y-4 rounded-[1.5rem] border border-line bg-card p-4" onSubmit={onAdjust}>
+      <form className="card-casual mt-8 space-y-4 p-4" onSubmit={onAdjust}>
         <h2 className="text-lg font-semibold">{t("recipeAdjustTitle")}</h2>
         <p className="text-sm text-muted">
           {t("recipePantryCount", { n: checks.filter((item) => item.selected).length })}

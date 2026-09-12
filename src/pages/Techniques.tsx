@@ -62,9 +62,9 @@ export function Techniques() {
       <h1 className="text-3xl font-semibold tracking-tight">{t("techniquesTitle")}</h1>
       <p className="mt-2 text-sm text-muted">{t("techniquesLead")}</p>
       {error ? <div className="mt-6"><ErrorState message={error} onRetry={load} /></div> : null}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="mt-8 grid grid-cols-3 gap-x-2 gap-y-5">
         {!isSupabaseConfigured ? (
-          <div className="col-span-2 sm:col-span-3">
+            <div className="col-span-3">
             <EmptyState
               title="데이터베이스가 연결되지 않았습니다"
               body=".env에 VITE_SUPABASE_URL과 VITE_SUPABASE_ANON_KEY를 넣은 뒤 시드 SQL을 적용하세요."

@@ -16,7 +16,7 @@ export function Home() {
       <div className="mt-10 grid gap-4">
         <Link
           to="/techniques"
-          className="flex min-h-40 flex-col justify-between rounded-[1.75rem] bg-accent px-6 py-6 text-white"
+          className="flex min-h-40 flex-col justify-between rounded-[2rem] bg-accent px-6 py-6 text-white shadow-[inset_0_3px_0_rgba(255,255,255,0.28),0_8px_0_#16553a]"
         >
           <BookOpen className="h-8 w-8" strokeWidth={1.75} />
           <div>
@@ -26,7 +26,7 @@ export function Home() {
         </Link>
         <Link
           to="/recipes"
-          className="flex min-h-40 flex-col justify-between rounded-[1.75rem] border border-line bg-card px-6 py-6"
+          className="card-casual flex min-h-40 flex-col justify-between px-6 py-6"
         >
           <UtensilsCrossed className="h-8 w-8 text-accent" strokeWidth={1.75} />
           <div>

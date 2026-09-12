@@ -103,7 +103,7 @@ export function Profile() {
         </div>
       ) : (
         <>
-          <section className="mt-6 rounded-[1.5rem] border border-line bg-card p-5">
+          <section className="card-casual mt-6 p-5">
             <p className="text-sm text-muted">{t("profileProgress")}</p>
             <p className="mt-1 text-2xl font-semibold">{percent}%</p>
             <ProgressBar value={percent} />
@@ -131,12 +131,12 @@ export function Profile() {
             </ul>
           </section>
 
-          <section className="mt-6 rounded-[1.5rem] border border-line bg-card p-5">
+          <section className="card-casual mt-6 p-5">
             <h2 className="text-lg font-semibold">{t("profileSettings")}</h2>
             <LanguageToggle className="mt-4" />
           </section>
 
-          <section className="mt-6 rounded-[1.5rem] border border-line bg-card p-5">
+          <section className="card-casual mt-6 p-5">
             <h2 className="text-lg font-semibold">{t("profileCooking")}</h2>
             <div className="field mt-4">
               <label htmlFor="experience">{t("profileExperience")}</label>

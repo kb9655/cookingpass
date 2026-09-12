@@ -404,7 +404,7 @@ export function TechniqueDetail() {
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("techniquesVariants")}</h2>
           <p className="mt-2 text-sm text-muted">{t("techniquesVariantsLead")}</p>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-2">
             {detail.children.map((child, index) => {
               const childProgress = progress.find((item) => item.technique_id === child.id);
               return (
@@ -448,6 +448,24 @@ export function TechniqueDetail() {
           <span>{t("techniquesMinutes", { n: detail.estimated_minutes })}</span>
         </div>
         <p className="mt-4 text-sm leading-relaxed text-muted">{detail.description}</p>
+        {detail.criteria.length > 0 ? (
+          <div className="card-casual mt-5 p-4">
+            <p className="text-sm font-semibold">{t("techniquesCriteria")}</p>
+            <ol className="mt-3 space-y-2">
+              {detail.criteria.map((item) => (
+                <li key={item.id}>
+                  <p className="text-sm font-medium">
+                    {item.sort_order}. {item.name}
+                    {item.is_safety ? (
+                      <span className="ml-2 text-xs text-red-700">{t("techniquesSafety")}</span>
+                    ) : null}
+                  </p>
+                  <p className="text-xs text-muted">{item.check_hint}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
         {status === "cleared" ? (
           <p className="mt-6 text-sm font-semibold text-accent">{t("techniquesAlreadyCleared")}</p>
         ) : null}
@@ -480,6 +498,24 @@ export function TechniqueDetail() {
         ) : null}
         {detail.target_size ? (
           <p className="mt-2 text-sm text-muted">{t("techniquesTargetSize", { size: detail.target_size })}</p>
+        ) : null}
+        {detail.criteria.length > 0 ? (
+          <div className="card-casual mt-4 p-4">
+            <p className="text-sm font-semibold">{t("techniquesCriteria")}</p>
+            <ol className="mt-3 space-y-2">
+              {detail.criteria.map((item) => (
+                <li key={item.id}>
+                  <p className="text-sm font-medium">
+                    {item.sort_order}. {item.name}
+                    {item.is_safety ? (
+                      <span className="ml-2 text-xs text-red-700">{t("techniquesSafety")}</span>
+                    ) : null}
+                  </p>
+                  <p className="text-xs text-muted">{item.check_hint}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
         ) : null}
         <label className="btn-secondary mt-4 w-full cursor-pointer">
           <input
@@ -560,7 +596,7 @@ export function TechniqueDetail() {
         <h2 className={`${summaryScores ? "mt-1" : ""} text-2xl font-semibold`}>{t("techniquesSummary")}</h2>
         {lastResult ? <p className="mt-2 text-lg font-semibold">{lastResult.headline}</p> : null}
         <div className="mt-3">
-          <ScoreStars scores={summaryScores} animate />
+          <ScoreStars scores={summaryScores} animate size="lg" />
         </div>
         <ul className="mt-4 space-y-4 text-sm">
           {detail.steps.map((item) => {
@@ -594,7 +630,7 @@ export function TechniqueDetail() {
 
         <h3 className="mt-8 text-lg font-semibold">{t("techniquesRecommend")}</h3>
         {unlearnedRelated.length > 0 ? (
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-4 grid grid-cols-3 gap-2">
             {unlearnedRelated.map((item, index) => (
               <TechniqueCard
                 key={item.id}
@@ -619,22 +655,22 @@ export function TechniqueDetail() {
       <div className="flex min-h-0 flex-1 items-stretch gap-1">
         <button
           type="button"
-          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-center text-ink disabled:text-line"
+          className="stage-orb stage-orb-nav shrink-0 self-center disabled:opacity-40"
           aria-label={t("techniquesPrev")}
           disabled={!canPrev}
           onClick={goBack}
         >
-          <ChevronLeft className="h-8 w-8" strokeWidth={2} />
+          <ChevronLeft className="h-7 w-7" strokeWidth={2.25} />
         </button>
         <div className="min-w-0 flex-1 overflow-y-auto py-4">{body}</div>
         <button
           type="button"
-          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-center text-ink disabled:text-line"
+          className="stage-orb stage-orb-nav shrink-0 self-center disabled:opacity-40"
           aria-label={t("techniquesNext")}
           disabled={!canNext}
           onClick={goForward}
         >
-          <ChevronRight className="h-8 w-8" strokeWidth={2} />
+          <ChevronRight className="h-7 w-7" strokeWidth={2.25} />
         </button>
       </div>
       {error ? <p className="mb-2 text-sm text-red-700">{error}</p> : null}

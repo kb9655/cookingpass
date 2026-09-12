@@ -14,9 +14,9 @@ export function LessonProgress({
         return (
           <li
             key={index}
-            className={`h-2.5 w-2.5 rounded-full border ${
+            className={`h-3 w-3 rounded-full border-2 ${
               active
-                ? "border-accent bg-accent"
+                ? "border-accent bg-accent shadow-[0_2px_0_#16553a]"
                 : done
                   ? "border-progress-done bg-progress-done"
                   : "border-line bg-white"

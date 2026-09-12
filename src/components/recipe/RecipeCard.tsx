@@ -12,9 +12,7 @@ export function RecipeCard({
   return (
     <Link to={`/recipes/${recipe.id}`}>
       <article
-        className={`rounded-[1.5rem] border bg-card p-4 ${
-          highlight ? "border-accent" : "border-line"
-        }`}
+        className={`card-casual p-4 ${highlight ? "border-accent" : ""}`}
       >
         {highlight ? (
           <p className="mb-2 text-xs font-semibold text-accent">방금 배운 기술과 연결됨</p>

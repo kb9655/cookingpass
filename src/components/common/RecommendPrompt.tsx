@@ -10,10 +10,8 @@ import { isSupabaseConfigured } from "../../lib/supabase";
 import type { ScoredRecipe } from "../../types/recipe";
 import { RecommendDialog } from "./RecommendDialog";
 
-const LAST_SHOWN_KEY = "cookingpass:rec-popup-at";
 const SESSION_SHOWN_KEY = "cookingpass:rec-shown";
 const JUST_LOGIN_KEY = "cookingpass:just-logged-in";
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 function blockedPath(pathname: string): boolean {
   return (
@@ -25,7 +23,6 @@ function blockedPath(pathname: string): boolean {
 
 function markShown(userId: string) {
   sessionStorage.setItem(`${SESSION_SHOWN_KEY}:${userId}`, "1");
-  localStorage.setItem(LAST_SHOWN_KEY, String(Date.now()));
 }
 
 export function RecommendPrompt() {
@@ -49,11 +46,8 @@ export function RecommendPrompt() {
       return;
     }
 
-    const lastAt = Number(localStorage.getItem(LAST_SHOWN_KEY) || "0");
-    const dueByCooldown = Date.now() - lastAt >= DAY_MS;
     const shownThisSession = Boolean(sessionStorage.getItem(`${SESSION_SHOWN_KEY}:${user.id}`));
-    if (!justLoggedIn && !dueByCooldown) return;
-    if (shownThisSession && !justLoggedIn && !dueByCooldown) return;
+    if (shownThisSession && !justLoggedIn) return;
 
     if (justLoggedIn) sessionStorage.removeItem(JUST_LOGIN_KEY);
 
