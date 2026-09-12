@@ -25,8 +25,7 @@ import type {
 type WizardScreen =
   | { type: "intro" }
   | { type: "caution" }
-  | { type: "explain"; stepIndex: number }
-  | { type: "upload"; stepIndex: number }
+  | { type: "practice"; stepIndex: number }
   | { type: "feedback"; stepIndex: number }
   | { type: "summary" };
 
@@ -36,8 +35,7 @@ type EvalPopup = "no-photo" | "bad-photo" | null;
 function buildScreens(stepCount: number): WizardScreen[] {
   const screens: WizardScreen[] = [{ type: "intro" }, { type: "caution" }];
   for (let index = 0; index < stepCount; index += 1) {
-    screens.push({ type: "explain", stepIndex: index });
-    screens.push({ type: "upload", stepIndex: index });
+    screens.push({ type: "practice", stepIndex: index });
     screens.push({ type: "feedback", stepIndex: index });
   }
   screens.push({ type: "summary" });
@@ -153,11 +151,11 @@ export function TechniqueDetail() {
     return true;
   }
 
-  function nextIndexAfterUpload(stepIndex: number) {
-    const nextExplain = screens.findIndex(
-      (item) => item.type === "explain" && item.stepIndex === stepIndex + 1,
+  function nextIndexAfterPractice(stepIndex: number) {
+    const nextPractice = screens.findIndex(
+      (item) => item.type === "practice" && item.stepIndex === stepIndex + 1,
     );
-    if (nextExplain >= 0) return nextExplain;
+    if (nextPractice >= 0) return nextPractice;
     return screens.findIndex((item) => item.type === "summary");
   }
 
@@ -288,7 +286,7 @@ export function TechniqueDetail() {
   }
 
   function goForward() {
-    if (screen.type === "upload" && detail) {
+    if (screen.type === "practice" && detail) {
       const current = detail.steps[screen.stepIndex];
       if (current && !stepHasPhoto(current)) {
         setStepStatus((value) => ({ ...value, [current.id]: "skipped" }));
@@ -298,7 +296,7 @@ export function TechniqueDetail() {
           return next;
         });
         setPopup("no-photo");
-        const dest = nextIndexAfterUpload(screen.stepIndex);
+        const dest = nextIndexAfterPractice(screen.stepIndex);
         if (dest >= 0) setScreenIndex(dest);
         return;
       }
@@ -307,7 +305,7 @@ export function TechniqueDetail() {
   }
 
   function retryCurrentStep() {
-    if (!detail || (screen.type !== "feedback" && screen.type !== "upload")) return;
+    if (!detail || (screen.type !== "feedback" && screen.type !== "practice")) return;
     const step = detail.steps[screen.stepIndex];
     if (!step) return;
     evaluateStarted.current[step.id] = false;
@@ -322,11 +320,11 @@ export function TechniqueDetail() {
       return next;
     });
     onPickPhoto(step.id, null);
-    const uploadIndex = screens.findIndex(
-      (item) => item.type === "upload" && item.stepIndex === screen.stepIndex,
+    const practiceIndex = screens.findIndex(
+      (item) => item.type === "practice" && item.stepIndex === screen.stepIndex,
     );
     setError("");
-    if (uploadIndex >= 0) setScreenIndex(uploadIndex);
+    if (practiceIndex >= 0) setScreenIndex(practiceIndex);
   }
 
   if (loading) {
@@ -389,12 +387,12 @@ export function TechniqueDetail() {
   }
 
   const step =
-    screen.type === "explain" || screen.type === "upload" || screen.type === "feedback"
+    screen.type === "practice" || screen.type === "feedback"
       ? detail.steps[screen.stepIndex]
       : undefined;
-  const showDots = screen.type === "explain" || screen.type === "upload" || screen.type === "feedback";
+  const showDots = screen.type === "practice" || screen.type === "feedback";
   const currentStep =
-    screen.type === "explain" || screen.type === "upload" || screen.type === "feedback" ? screen.stepIndex : 0;
+    screen.type === "practice" || screen.type === "feedback" ? screen.stepIndex : 0;
   const unlearnedRelated = detail.related.filter((item) => {
     if (item.id === detail.id) return false;
     return progress.find((row) => row.technique_id === item.id)?.status !== "cleared";
@@ -430,11 +428,10 @@ export function TechniqueDetail() {
         </ul>
       </div>
     );
-  } else if (screen.type === "explain" && step) {
+  } else if (screen.type === "practice" && step) {
     body = (
       <div>
-        <p className="text-xs font-medium text-muted">{t("techniquesExplainStep")}</p>
-        <p className="mt-1 text-xs text-muted">STEP {step.step_number}</p>
+        <p className="text-xs text-muted">STEP {step.step_number}</p>
         {step.title ? <h2 className="mt-2 text-2xl font-semibold">{step.title}</h2> : null}
         <p className="mt-3 text-sm leading-relaxed text-muted">{step.instruction}</p>
         <div className="mt-4">
@@ -448,14 +445,6 @@ export function TechniqueDetail() {
         {detail.target_size ? (
           <p className="mt-2 text-sm text-muted">{t("techniquesTargetSize", { size: detail.target_size })}</p>
         ) : null}
-      </div>
-    );
-  } else if (screen.type === "upload" && step) {
-    body = (
-      <div>
-        <p className="text-xs font-medium text-muted">{t("techniquesUploadStep")}</p>
-        <p className="mt-1 text-xs text-muted">STEP {step.step_number}</p>
-        {step.title ? <h2 className="mt-2 text-2xl font-semibold">{step.title}</h2> : null}
         <label className="btn-secondary mt-4 w-full cursor-pointer">
           <input
             className="sr-only"

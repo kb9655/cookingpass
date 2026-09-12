@@ -30,19 +30,9 @@ export function AppShell() {
       {isAuthPage ? null : (
         <header className="sticky top-0 z-20 border-b border-line bg-card/95 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
           <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
-            {isLessonPage ? (
-              <Link
-                to="/"
-                className="inline-flex min-h-11 min-w-11 items-center justify-center text-ink"
-                aria-label={t("navHome")}
-              >
-                <House className="h-5 w-5" strokeWidth={1.75} />
-              </Link>
-            ) : (
-              <Link to="/" className="text-sm font-semibold">
-                Cooking Pass
-              </Link>
-            )}
+            <Link to="/" className="text-sm font-semibold">
+              Cooking Pass
+            </Link>
             {user ? (
               <Link
                 to="/profile"
