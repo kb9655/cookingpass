@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ErrorState } from "../components/common/Feedback";
 import { CookingStep } from "../components/cooking/CookingStep";
+import { LessonProgress } from "../components/technique/LessonProgress";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
 import {
@@ -24,6 +25,7 @@ export function Cooking() {
   const [startedAt, setStartedAt] = useState(Date.now());
   const [viewIndex, setViewIndex] = useState(0);
   const [progressIndex, setProgressIndex] = useState(0);
+  const [onIntro, setOnIntro] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [techniqueNames, setTechniqueNames] = useState<Record<string, string>>({});
@@ -43,6 +45,7 @@ export function Cooking() {
     setStartedAt(session.startedAt);
     setProgressIndex(Math.min(session.progressIndex, last));
     setViewIndex(Math.min(session.viewIndex, last));
+    setOnIntro(session.progressIndex === 0 && session.viewIndex === 0);
     setReady(true);
 
     void getRecipeDetail(id).then((detail) => {
@@ -91,12 +94,20 @@ export function Cooking() {
 
   function goNext() {
     if (!recipe) return;
+    if (onIntro) {
+      setOnIntro(false);
+      return;
+    }
     const nextView = Math.min(total - 1, viewIndex + 1);
     setViewIndex(nextView);
     if (nextView >= progressIndex) setProgressIndex(nextView);
   }
 
   function goPrev() {
+    if (!onIntro && viewIndex === 0) {
+      setOnIntro(true);
+      return;
+    }
     setViewIndex((value) => Math.max(0, value - 1));
   }
 
@@ -132,79 +143,67 @@ export function Cooking() {
     );
   }
 
-  const isLastView = viewIndex === total - 1;
+  const isLastView = !onIntro && viewIndex === total - 1;
+  const canPrev = !onIntro;
+  const canNext = onIntro || viewIndex < total - 1;
 
   return (
-    <main className="page flex min-h-[calc(100dvh-8.5rem)] flex-col pb-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium text-muted">
-            {t("cookProgress", { current: progressIndex + 1, total })}
-          </p>
-          <h1 className="mt-1 text-lg font-semibold leading-snug">{recipe.title}</h1>
-        </div>
-        <Link to={`/recipes/${id}`} className="shrink-0 pt-1 text-sm text-muted">
-          {t("cookLeave")}
-        </Link>
-      </div>
-
-      <ol className="mt-4 flex flex-wrap gap-2" aria-label={t("cookProgress", { current: progressIndex + 1, total })}>
-        {recipe.steps.map((item, index) => {
-          const viewing = index === viewIndex;
-          const current = index === progressIndex;
-          return (
-            <li key={item.step}>
-              <button
-                type="button"
-                onClick={() => setViewIndex(index)}
-                aria-current={viewing ? "step" : undefined}
-                aria-label={`${index + 1}${current ? `, ${t("cookCurrent")}` : ""}${viewing ? `, ${t("cookViewing")}` : ""}`}
-                className={`inline-flex h-9 min-w-9 items-center justify-center rounded-full px-2 text-sm font-semibold ${
-                  viewing
-                    ? "bg-accent text-white"
-                    : current
-                      ? "border-2 border-accent bg-card text-accent"
-                      : "border border-line bg-card text-muted"
-                }`}
-              >
-                {index + 1}
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-
-      <div className="mt-6 flex-1">
-        <CookingStep
-          step={step}
-          recipeTitle={recipe.title}
-          techniqueName={step.technique_id ? techniqueNames[step.technique_id] : undefined}
-        />
-      </div>
-
-      {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
-
-      <div className="mt-8 flex gap-3">
+    <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-lg flex-col px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      {onIntro ? null : <LessonProgress total={total} current={viewIndex} />}
+      <div className="flex min-h-0 flex-1 items-stretch gap-1">
         <button
           type="button"
-          className="btn-secondary flex-1"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-center text-ink disabled:text-line"
+          aria-label={t("cookPrev")}
+          disabled={!canPrev}
           onClick={goPrev}
-          disabled={viewIndex === 0}
         >
-          <ChevronLeft className="mr-1 h-4 w-4" strokeWidth={1.75} />
-          {t("cookPrev")}
+          <ChevronLeft className="h-8 w-8" strokeWidth={2} />
         </button>
-        {isLastView ? (
-          <button type="button" className="btn-primary flex-1" onClick={complete} disabled={saving}>
-            {saving ? t("cookSaving") : t("cookDone")}
-          </button>
-        ) : (
-          <button type="button" className="btn-primary flex-1" onClick={goNext}>
-            {t("cookNext")}
-            <ChevronRight className="ml-1 h-4 w-4" strokeWidth={1.75} />
-          </button>
-        )}
+        <div className="min-w-0 flex-1 overflow-y-auto py-4">
+          {onIntro ? (
+            <div>
+              <p className="text-xs font-medium text-muted">{t("cookIntro")}</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight">{recipe.title}</h1>
+              <p className="mt-3 text-sm text-muted">{t("recipeServings", { n: recipe.servings })}</p>
+              {recipe.notes ? <p className="mt-4 text-sm leading-relaxed text-muted">{recipe.notes}</p> : null}
+              <Link to={`/recipes/${id}`} className="mt-6 inline-block text-sm font-medium text-accent">
+                {t("cookLeave")}
+              </Link>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs font-medium text-muted">{t("cookExplainStep")}</p>
+              <p className="mt-1 text-xs text-muted">STEP {step.step}</p>
+              <div className="mt-3">
+                <CookingStep
+                  step={step}
+                  recipeTitle={recipe.title}
+                  techniqueName={step.technique_id ? techniqueNames[step.technique_id] : undefined}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-center text-ink disabled:text-line"
+          aria-label={t("cookNext")}
+          disabled={!canNext}
+          onClick={goNext}
+        >
+          <ChevronRight className="h-8 w-8" strokeWidth={2} />
+        </button>
       </div>
+      {error ? <p className="mb-2 text-sm text-red-700">{error}</p> : null}
+      <button
+        className="btn-primary mb-2 min-h-11 w-full"
+        type="button"
+        disabled={saving || (!canNext && !isLastView)}
+        onClick={isLastView ? () => void complete() : goNext}
+      >
+        {saving ? t("cookSaving") : isLastView ? t("cookDone") : t("cookNext")}
+      </button>
     </main>
   );
 }

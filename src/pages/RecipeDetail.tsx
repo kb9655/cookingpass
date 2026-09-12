@@ -200,6 +200,47 @@ export function RecipeDetail() {
         </div>
         <div className="field">
           <label htmlFor="notes">{t("recipeNotes")}</label>
+          <p className="mb-2 text-xs text-muted">{t("recipeNoteChips")}</p>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {(
+              [
+                "recipeNoteChip1",
+                "recipeNoteChip2",
+                "recipeNoteChip3",
+                "recipeNoteChip4",
+                "recipeNoteChip5",
+              ] as const
+            ).map((key) => {
+              const label = t(key);
+              const selected = notes.includes(label);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`min-h-11 rounded-full border px-3 py-1 text-sm ${
+                    selected ? "border-accent bg-accent text-white" : "border-line bg-white text-ink"
+                  }`}
+                  aria-pressed={selected}
+                  onClick={() => {
+                    if (selected) {
+                      setNotes(
+                        notes
+                          .replace(label, "")
+                          .replace(/,\s*,/g, ",")
+                          .replace(/^[\s,]+|[\s,]+$/g, "")
+                          .replace(/\n{2,}/g, "\n")
+                          .trim(),
+                      );
+                      return;
+                    }
+                    setNotes(notes.trim() ? `${notes.trim()}, ${label}` : label);
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
           <textarea
             id="notes"
             rows={3}

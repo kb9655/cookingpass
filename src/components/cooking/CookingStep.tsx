@@ -15,7 +15,17 @@ export function CookingStep({
     <section>
       <p className="text-lg leading-relaxed">{step.instruction}</p>
       <div className="mt-6">
-        <MediaSlot label={`${recipeTitle} ${step.step}단계`} />
+        <MediaSlot
+          media={{
+            id: "lesson-placeholder",
+            type: "image",
+            storage_path: null,
+            source_url: "/images/lessons/test-step.svg",
+            author: null,
+            license: null,
+          }}
+          label={`${recipeTitle} ${step.step}단계`}
+        />
       </div>
       {techniqueName ? (
         <p className="mt-4 inline-flex items-center gap-2 text-sm text-accent">

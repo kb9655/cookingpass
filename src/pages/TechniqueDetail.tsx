@@ -490,7 +490,7 @@ export function TechniqueDetail() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-lg flex-col px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
       {showDots ? <LessonProgress total={detail.steps.length} current={currentStep} /> : null}
       <div className="flex min-h-0 flex-1 items-stretch gap-1">
         <button
