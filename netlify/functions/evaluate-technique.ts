@@ -95,7 +95,11 @@ export default async (req: Request) => {
     : undefined;
   const prompt = [
     "당신은 초심자 요리 연습의 부드러운 코치입니다.",
-    "사진에 보이는 것만 보고 세 항목을 각각 1, 2, 3점으로 매기세요.",
+    "먼저 사진이 이 단계 연습을 보여주는지 판단하세요.",
+    "단계 연습이 사진에 보이면 image_relevant는 true, 아니면 false입니다.",
+    "요리 연습과 무관하거나 평가 항목을 확인할 수 없으면 image_relevant는 false입니다.",
+    "image_relevant가 false이면 점수는 모두 1로 두고, 사진이 맞지 않는다고 짧게 쓰세요.",
+    "사진이 맞으면 image_relevant는 true로 두고, 보이는 것만 보고 세 항목을 각각 1, 2, 3점으로 매기세요.",
     "1점: 아직 연습이 필요한 상태. 2점: 대체로 잘 수행함. 3점: 안정적으로 수행함.",
     "완벽하게, 정확히 몇 mm, 정확한 온도 같은 부담스러운 기준은 쓰지 마세요.",
     "사진에 없는 내용은 추측하지 말고, 보이는 범위에서 관대하게 평가하세요.",
@@ -168,8 +172,9 @@ export default async (req: Request) => {
     return errorResponse("세 항목 점수가 모두 필요합니다.", 502);
   }
 
+  const imageRelevant = parsed.data.image_relevant;
   const lastItemScores = [1, 2, 3].map((order) => scoresByOrder.get(order) ?? 1);
-  const passed = passedEvaluation(criteria, scoresByOrder);
+  const passed = imageRelevant && passedEvaluation(criteria, scoresByOrder);
   const itemScores = criteria.map((item) => ({
     criterion_id: item.id,
     sort_order: item.sort_order,
@@ -180,16 +185,18 @@ export default async (req: Request) => {
       parsed.data.items.find((entry) => entry.sort_order === item.sort_order)?.feedback ?? "",
   }));
 
-  const { error: attemptError } = await supabase.from("user_technique_attempts").insert({
-    user_id: user.id,
-    technique_id,
-    item_scores: itemScores,
-    passed,
-    headline: parsed.data.headline,
-    next_practice: parsed.data.next_practice,
-  });
-  if (attemptError) {
-    return errorResponse("평가 기록을 저장하지 못했습니다.", 500);
+  if (imageRelevant) {
+    const { error: attemptError } = await supabase.from("user_technique_attempts").insert({
+      user_id: user.id,
+      technique_id,
+      item_scores: itemScores,
+      passed,
+      headline: parsed.data.headline,
+      next_practice: parsed.data.next_practice,
+    });
+    if (attemptError) {
+      return errorResponse("평가 기록을 저장하지 못했습니다.", 500);
+    }
   }
 
   async function upsertProgress(targetId: string, markCleared: boolean) {
@@ -221,7 +228,7 @@ export default async (req: Request) => {
     if (upsertError) throw upsertError;
   }
 
-  if (persist_progress) {
+  if (persist_progress && imageRelevant) {
     try {
       await upsertProgress(technique_id, passed);
       if (row.parent_id) {
@@ -233,6 +240,7 @@ export default async (req: Request) => {
   }
 
   return json({
+    image_relevant: imageRelevant,
     passed,
     headline: parsed.data.headline,
     next_practice: parsed.data.next_practice,

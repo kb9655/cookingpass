@@ -101,6 +101,7 @@ export const evaluationItemSchema = z.object({
 });
 
 export const evaluationResultSchema = z.object({
+  image_relevant: z.boolean(),
   items: z.array(evaluationItemSchema).length(3),
   headline: z.string().min(1).max(80),
   next_practice: z.string().min(1).max(160),
@@ -109,8 +110,9 @@ export const evaluationResultSchema = z.object({
 export const evaluationResultJsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["items", "headline", "next_practice"],
+  required: ["image_relevant", "items", "headline", "next_practice"],
   properties: {
+    image_relevant: { type: "boolean" },
     items: {
       type: "array",
       minItems: 3,

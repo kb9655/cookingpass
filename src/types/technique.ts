@@ -52,6 +52,7 @@ export type TechniqueEvaluationItem = {
 };
 
 export type TechniqueEvaluation = {
+  image_relevant?: boolean;
   passed: boolean;
   headline: string;
   next_practice: string;

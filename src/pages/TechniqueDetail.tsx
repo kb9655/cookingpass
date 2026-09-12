@@ -30,6 +30,9 @@ type WizardScreen =
   | { type: "feedback"; stepIndex: number }
   | { type: "summary" };
 
+type StepEvalStatus = "scored" | "skipped" | "invalid";
+type EvalPopup = "no-photo" | "bad-photo" | null;
+
 function buildScreens(stepCount: number): WizardScreen[] {
   const screens: WizardScreen[] = [{ type: "intro" }, { type: "caution" }];
   for (let index = 0; index < stepCount; index += 1) {
@@ -71,6 +74,8 @@ export function TechniqueDetail() {
   const [photos, setPhotos] = useState<Record<string, File | null>>({});
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [stepResults, setStepResults] = useState<Record<string, TechniqueEvaluation>>({});
+  const [stepStatus, setStepStatus] = useState<Record<string, StepEvalStatus>>({});
+  const [popup, setPopup] = useState<EvalPopup>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -87,6 +92,8 @@ export function TechniqueDetail() {
     setLoading(true);
     setError("");
     setStepResults({});
+    setStepStatus({});
+    setPopup(null);
     setPhotos({});
     setPreviews({});
     setScreenIndex(0);
@@ -139,13 +146,19 @@ export function TechniqueDetail() {
   }
 
   function canLeave(from: WizardScreen) {
-    if (from.type === "upload" && detail) {
-      return stepHasPhoto(detail.steps[from.stepIndex]);
-    }
     if (from.type === "feedback" && detail) {
-      return Boolean(stepResults[detail.steps[from.stepIndex]?.id]);
+      const stepId = detail.steps[from.stepIndex]?.id;
+      return Boolean(stepId && stepStatus[stepId]);
     }
     return true;
+  }
+
+  function nextIndexAfterUpload(stepIndex: number) {
+    const nextExplain = screens.findIndex(
+      (item) => item.type === "explain" && item.stepIndex === stepIndex + 1,
+    );
+    if (nextExplain >= 0) return nextExplain;
+    return screens.findIndex((item) => item.type === "summary");
   }
 
   const canPrev = screenIndex > 0;
@@ -174,6 +187,17 @@ export function TechniqueDetail() {
         persistProgress: false,
         photos: [{ step_number: step.step_number, ...jpeg }],
       });
+      if (next.image_relevant === false) {
+        setStepStatus((current) => ({ ...current, [step.id]: "invalid" }));
+        setStepResults((current) => {
+          const copy = { ...current };
+          delete copy[step.id];
+          return copy;
+        });
+        setPopup("bad-photo");
+        return;
+      }
+      setStepStatus((current) => ({ ...current, [step.id]: "scored" }));
       setStepResults((current) => ({ ...current, [step.id]: next }));
     } catch (err) {
       evaluateStarted.current[step.id] = false;
@@ -192,28 +216,39 @@ export function TechniqueDetail() {
   useEffect(() => {
     if (screen.type !== "feedback" || !detail) return;
     const step = detail.steps[screen.stepIndex];
-    if (!step || stepResults[step.id] || evaluateStarted.current[step.id]) return;
+    if (!step) return;
+    if (stepStatus[step.id] === "skipped" || stepStatus[step.id] === "invalid") return;
+    if (!photos[step.id]) return;
+    if (stepResults[step.id] || evaluateStarted.current[step.id]) return;
     evaluateStarted.current[step.id] = true;
     void runEvaluateStep(step);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, detail, stepResults]);
+  }, [screen, detail, stepResults, stepStatus, photos]);
 
   const acceptedResults = useMemo(() => {
     if (!detail) return [];
     return detail.steps
+      .filter((step) => stepStatus[step.id] === "scored")
       .map((step) => stepResults[step.id])
       .filter((item): item is TechniqueEvaluation => Boolean(item));
-  }, [detail, stepResults]);
+  }, [detail, stepResults, stepStatus]);
 
-  const summaryScores = useMemo(() => aggregateScores(acceptedResults), [acceptedResults]);
+  const allStepsResolved = Boolean(
+    detail && detail.steps.length > 0 && detail.steps.every((step) => stepStatus[step.id]),
+  );
+  const summaryScores = useMemo(
+    () => (acceptedResults.length > 0 ? aggregateScores(acceptedResults) : null),
+    [acceptedResults],
+  );
   const summaryPassed = useMemo(
-    () => (detail ? passedFromScores(detail.criteria, summaryScores) : false),
+    () =>
+      Boolean(detail && summaryScores && passedFromScores(detail.criteria, summaryScores)),
     [detail, summaryScores],
   );
 
   useEffect(() => {
     if (screen.type !== "summary" || !detail || !user || progressSaved.current) return;
-    if (acceptedResults.length !== detail.steps.length || detail.steps.length === 0) return;
+    if (!allStepsResolved) return;
     progressSaved.current = true;
     void saveTechniqueScores(user.id, detail.id, summaryScores, summaryPassed, detail.parent_id)
       .then(() => {
@@ -223,23 +258,64 @@ export function TechniqueDetail() {
         progressSaved.current = false;
         setError(t("techniquesEvalFailed"));
       });
-  }, [screen.type, detail, user, acceptedResults.length, summaryScores, summaryPassed, t]);
+  }, [screen.type, detail, user, allStepsResolved, summaryScores, summaryPassed, t]);
 
   function goTo(nextIndex: number) {
     if (nextIndex < 0 || nextIndex >= screens.length) return;
     if (nextIndex > screenIndex && !canLeave(screen)) {
-      setError(screen.type === "upload" ? t("techniquesNeedPhoto") : t("techniquesEvaluating"));
+      setError(t("techniquesEvaluating"));
       return;
     }
     setError("");
     setScreenIndex(nextIndex);
   }
 
+  function goBack() {
+    let dest = screenIndex - 1;
+    while (dest >= 0 && detail) {
+      const target = screens[dest];
+      if (target?.type === "feedback") {
+        const targetStep = detail.steps[target.stepIndex];
+        if (targetStep && stepStatus[targetStep.id] !== "scored") {
+          dest -= 1;
+          continue;
+        }
+      }
+      goTo(dest);
+      return;
+    }
+    if (dest >= 0) goTo(dest);
+  }
+
+  function goForward() {
+    if (screen.type === "upload" && detail) {
+      const current = detail.steps[screen.stepIndex];
+      if (current && !stepHasPhoto(current)) {
+        setStepStatus((value) => ({ ...value, [current.id]: "skipped" }));
+        setStepResults((value) => {
+          const next = { ...value };
+          delete next[current.id];
+          return next;
+        });
+        setPopup("no-photo");
+        const dest = nextIndexAfterUpload(screen.stepIndex);
+        if (dest >= 0) setScreenIndex(dest);
+        return;
+      }
+    }
+    goTo(screenIndex + 1);
+  }
+
   function retryCurrentStep() {
-    if (!detail || screen.type !== "feedback") return;
+    if (!detail || (screen.type !== "feedback" && screen.type !== "upload")) return;
     const step = detail.steps[screen.stepIndex];
     if (!step) return;
     evaluateStarted.current[step.id] = false;
+    setStepStatus((current) => {
+      const next = { ...current };
+      delete next[step.id];
+      return next;
+    });
     setStepResults((current) => {
       const next = { ...current };
       delete next[step.id];
@@ -400,7 +476,23 @@ export function TechniqueDetail() {
       </div>
     );
   } else if (screen.type === "feedback" && step) {
-    body = stepResult ? (
+    const evalStatus = stepStatus[step.id];
+    body =
+      evalStatus === "invalid" || evalStatus === "skipped" ? (
+        <section>
+          <p className="text-xs font-medium text-muted">{t("techniquesEvalStep")}</p>
+          <p className="mt-1 text-xs text-muted">STEP {step.step_number}</p>
+          {step.title ? <h2 className="mt-2 text-2xl font-semibold">{step.title}</h2> : null}
+          {previews[step.id] ? (
+            <img
+              src={previews[step.id]}
+              alt={`${step.step_number}`}
+              className="mt-3 w-full rounded-[1.25rem] object-cover"
+            />
+          ) : null}
+          <p className="mt-4 text-sm font-medium text-muted">{t("techniquesUnevaluated")}</p>
+        </section>
+      ) : stepResult ? (
       <section>
         <p className="text-xs font-medium text-muted">{t("techniquesEvalStep")}</p>
         <p className="mt-1 text-xs text-muted">STEP {step.step_number}</p>
@@ -436,10 +528,12 @@ export function TechniqueDetail() {
     const lastResult = acceptedResults[acceptedResults.length - 1];
     body = (
       <section>
-        <p className="text-xs font-semibold text-accent">
-          {summaryPassed ? t("techniquesPassed") : t("techniquesKeepGoing")}
-        </p>
-        <h2 className="mt-1 text-2xl font-semibold">{t("techniquesSummary")}</h2>
+        {summaryScores ? (
+          <p className="text-xs font-semibold text-accent">
+            {summaryPassed ? t("techniquesPassed") : t("techniquesKeepGoing")}
+          </p>
+        ) : null}
+        <h2 className={`${summaryScores ? "mt-1" : ""} text-2xl font-semibold`}>{t("techniquesSummary")}</h2>
         {lastResult ? <p className="mt-2 text-lg font-semibold">{lastResult.headline}</p> : null}
         <div className="mt-3">
           <ScoreStars scores={summaryScores} animate />
@@ -447,21 +541,27 @@ export function TechniqueDetail() {
         <ul className="mt-4 space-y-4 text-sm">
           {detail.steps.map((item) => {
             const result = stepResults[item.id];
-            if (!result) return null;
+            const evalStatus = stepStatus[item.id];
             return (
               <li key={item.id}>
                 <p className="font-medium">
                   STEP {item.step_number}
                   {item.title ? ` · ${item.title}` : ""}
                 </p>
-                <p className="mt-1 text-muted">{result.headline}</p>
-                <ul className="mt-2 space-y-1">
-                  {result.items.map((criterion) => (
-                    <li key={criterion.criterion_id} className={criterion.score >= 2 ? "text-accent" : "text-muted"}>
-                      {criterion.score >= 2 ? "✓" : "△"} {criterion.feedback}
-                    </li>
-                  ))}
-                </ul>
+                {evalStatus === "scored" && result ? (
+                  <>
+                    <p className="mt-1 text-muted">{result.headline}</p>
+                    <ul className="mt-2 space-y-1">
+                      {result.items.map((criterion) => (
+                        <li key={criterion.criterion_id} className={criterion.score >= 2 ? "text-accent" : "text-muted"}>
+                          {criterion.score >= 2 ? "✓" : "△"} {criterion.feedback}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  <p className="mt-1 text-muted">{t("techniquesUnevaluated")}</p>
+                )}
               </li>
             );
           })}
@@ -498,7 +598,7 @@ export function TechniqueDetail() {
           className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-center text-ink disabled:text-line"
           aria-label={t("techniquesPrev")}
           disabled={!canPrev}
-          onClick={() => goTo(screenIndex - 1)}
+          onClick={goBack}
         >
           <ChevronLeft className="h-8 w-8" strokeWidth={2} />
         </button>
@@ -508,7 +608,7 @@ export function TechniqueDetail() {
           className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-center text-ink disabled:text-line"
           aria-label={t("techniquesNext")}
           disabled={!canNext}
-          onClick={() => goTo(screenIndex + 1)}
+          onClick={goForward}
         >
           <ChevronRight className="h-8 w-8" strokeWidth={2} />
         </button>
@@ -525,12 +625,35 @@ export function TechniqueDetail() {
             className="btn-primary min-h-11 flex-1"
             type="button"
             disabled={!canNext || saving}
-            onClick={() => goTo(screenIndex + 1)}
+            onClick={goForward}
           >
             {saving ? t("techniquesEvaluating") : t("techniquesNext")}
           </button>
         </div>
       )}
+      {popup ? (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/40 px-4 pb-24 pt-8 sm:items-center sm:pb-8">
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default"
+            aria-label={t("techniquesConfirm")}
+            onClick={() => setPopup(null)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="eval-skip-dialog-title"
+            className="relative z-10 w-full max-w-lg rounded-[1.75rem] border border-line bg-card p-5 shadow-lg"
+          >
+            <p id="eval-skip-dialog-title" className="text-base font-semibold">
+              {popup === "no-photo" ? t("techniquesSkipNoPhoto") : t("techniquesSkipBadPhoto")}
+            </p>
+            <button type="button" className="btn-primary mt-5 w-full" onClick={() => setPopup(null)}>
+              {t("techniquesConfirm")}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

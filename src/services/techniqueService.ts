@@ -111,7 +111,7 @@ export async function getTechniqueDetail(id: string): Promise<TechniqueDetail | 
 export async function saveTechniqueScores(
   userId: string,
   techniqueId: string,
-  scores: number[],
+  scores: number[] | null,
   passed: boolean,
   parentId?: string | null,
 ): Promise<void> {
@@ -119,6 +119,30 @@ export async function saveTechniqueScores(
   const clearedAt = passed ? new Date().toISOString() : null;
 
   async function upsert(targetId: string) {
+    if (scores == null) {
+      const { data, error } = await supabase
+        .from("user_technique_progress")
+        .update({ last_item_scores: null })
+        .eq("user_id", userId)
+        .eq("technique_id", targetId)
+        .select("technique_id");
+      if (error) throw error;
+      if (data && data.length > 0) return;
+
+      const { error: upsertError } = await supabase.from("user_technique_progress").upsert(
+        {
+          user_id: userId,
+          technique_id: targetId,
+          status: "unlocked",
+          cleared_at: null,
+          last_item_scores: null,
+        },
+        { onConflict: "user_id,technique_id" },
+      );
+      if (upsertError) throw upsertError;
+      return;
+    }
+
     const payload = {
       user_id: userId,
       technique_id: targetId,
