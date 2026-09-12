@@ -1,0 +1,6 @@
+node_modules
+.netlify
+dist
+resource_temp
+scripts/.seed-chunks
+*.log

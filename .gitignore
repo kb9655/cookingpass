@@ -6,8 +6,9 @@ node_modules/
 .env.*
 !.env.example
 
-# Netlify CLI local state
+# Hosting CLI local state
 .netlify/
+.vercel/
 
 # Build output
 dist/
@@ -28,3 +29,5 @@ resource_temp/1_Recipe_csv.csv
 
 # Generated seed chunks
 scripts/.seed-chunks/
+.vercel
+.env*
