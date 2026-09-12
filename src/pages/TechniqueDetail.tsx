@@ -456,15 +456,14 @@ export function TechniqueDetail() {
         <p className="text-xs font-medium text-muted">{t("techniquesUploadStep")}</p>
         <p className="mt-1 text-xs text-muted">STEP {step.step_number}</p>
         {step.title ? <h2 className="mt-2 text-2xl font-semibold">{step.title}</h2> : null}
-        <label className="mt-4 block">
-          <span className="text-sm font-medium">{t("techniquesUpload")}</span>
+        <label className="btn-secondary mt-4 w-full cursor-pointer">
           <input
-            className="mt-2 block min-h-11 w-full text-base"
+            className="sr-only"
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={(event) => onPickPhoto(step.id, event.target.files?.[0] ?? null)}
           />
+          {previews[step.id] ? t("techniquesChangePhoto") : t("techniquesPickPhoto")}
         </label>
         {previews[step.id] ? (
           <img
