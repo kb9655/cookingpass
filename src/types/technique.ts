@@ -62,7 +62,6 @@ export type TechniqueEvaluation = {
 export type TechniqueDetail = Technique & {
   steps: TechniqueStep[];
   related: Technique[];
-  recipes: { id: string; name: string; slug: string }[];
   criteria: TechniqueCriterion[];
   children: Technique[];
 };

@@ -1,8 +1,13 @@
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLocale } from "../../i18n/locale";
 import type { Technique, TechniqueProgressStatus } from "../../types/technique";
 import { ScoreStars } from "./ScoreStars";
+
+function scoresKey(techniqueId: string) {
+  return `cookingpass:seen-scores:${techniqueId}`;
+}
 
 export function TechniqueCard({
   technique,
@@ -15,6 +20,16 @@ export function TechniqueCard({
 }) {
   const { t } = useLocale();
   const cleared = status === "cleared";
+  const signature = JSON.stringify(scores ?? []);
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    if (!scores?.some((score) => score != null)) return;
+    const seen = sessionStorage.getItem(scoresKey(technique.id));
+    if (seen === signature) return;
+    setAnimate(true);
+    sessionStorage.setItem(scoresKey(technique.id), signature);
+  }, [technique.id, scores, signature]);
 
   return (
     <Link to={`/techniques/${technique.id}`}>
@@ -31,7 +46,7 @@ export function TechniqueCard({
         <div>
           <h2 className="text-base font-semibold leading-snug">{technique.name}</h2>
           <div className="mt-2">
-            <ScoreStars scores={scores} label={t("techniquesScoreLabel")} />
+            <ScoreStars scores={scores} label={t("techniquesScoreLabel")} animate={animate} />
           </div>
         </div>
       </article>

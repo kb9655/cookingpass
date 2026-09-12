@@ -10,15 +10,22 @@ function starClass(score: number | null): string {
 export function ScoreStars({
   scores,
   label,
+  animate = false,
 }: {
   scores?: number[] | null;
   label?: string;
+  animate?: boolean;
 }) {
   const items = [0, 1, 2].map((index) => scores?.[index] ?? null);
   return (
     <span className="inline-flex items-center gap-0.5" aria-label={label ?? "학습 점수"}>
       {items.map((score, index) => (
-        <Star key={index} className={`h-4 w-4 ${starClass(score)}`} strokeWidth={1.75} />
+        <Star
+          key={index}
+          className={`h-4 w-4 ${starClass(score)} ${animate && score != null ? "star-fill" : ""}`}
+          style={animate && score != null ? { animationDelay: `${index * 90}ms` } : undefined}
+          strokeWidth={1.75}
+        />
       ))}
     </span>
   );

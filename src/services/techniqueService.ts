@@ -66,8 +66,7 @@ export async function getTechniqueDetail(id: string): Promise<TechniqueDetail | 
   if (error) throw error;
   if (!technique) return null;
 
-  const [{ data: steps }, { data: relations }, { data: recipeLinks }, { data: criteria }, children] =
-    await Promise.all([
+  const [{ data: steps }, { data: relations }, { data: criteria }, children] = await Promise.all([
       supabase
         .from("technique_steps")
         .select("id, technique_id, step_number, title, instruction, media_id, media:media_id(*)")
@@ -76,10 +75,6 @@ export async function getTechniqueDetail(id: string): Promise<TechniqueDetail | 
       supabase
         .from("technique_relations")
         .select("related_technique_id")
-        .eq("technique_id", id),
-      supabase
-        .from("recipe_techniques")
-        .select("recipe_id, recipes(id, name, slug)")
         .eq("technique_id", id),
       supabase
         .from("technique_criteria")
@@ -99,14 +94,6 @@ export async function getTechniqueDetail(id: string): Promise<TechniqueDetail | 
     related = (relatedRows ?? []) as Technique[];
   }
 
-  const recipes = (recipeLinks ?? [])
-    .map((row) => {
-      const recipe = row.recipes as { id: string; name: string; slug: string } | { id: string; name: string; slug: string }[] | null;
-      if (Array.isArray(recipe)) return recipe[0];
-      return recipe;
-    })
-    .filter((item): item is { id: string; name: string; slug: string } => Boolean(item));
-
   return {
     ...(technique as Technique),
     steps: ((steps ?? []) as Array<TechniqueStep & { media: TechniqueStep["media"] | TechniqueStep["media"][] }>).map(
@@ -116,7 +103,6 @@ export async function getTechniqueDetail(id: string): Promise<TechniqueDetail | 
       }),
     ),
     related,
-    recipes,
     criteria: (criteria ?? []) as TechniqueCriterion[],
     children,
   };

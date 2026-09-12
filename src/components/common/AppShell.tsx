@@ -9,7 +9,10 @@ export function AppShell() {
   const { configured, user, profile } = useAuth();
   const { t } = useLocale();
   const hideChrome =
-    location.pathname.startsWith("/login") || location.pathname.startsWith("/signup");
+    location.pathname.startsWith("/login") ||
+    location.pathname.startsWith("/signup") ||
+    location.pathname.startsWith("/cook/") ||
+    /^\/techniques\/[^/]+/.test(location.pathname);
 
   const tabs = [
     { to: "/", label: t("navHome"), icon: House, end: true },
@@ -27,7 +30,7 @@ export function AppShell() {
         </div>
       ) : null}
       {hideChrome ? null : (
-        <header className="sticky top-0 z-20 border-b border-line bg-card/95 backdrop-blur-sm">
+        <header className="sticky top-0 z-20 border-b border-line bg-card/95 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
           <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
             <Link to="/" className="text-sm font-semibold">
               Cooking Pass
@@ -47,9 +50,9 @@ export function AppShell() {
       <div className={hideChrome ? "" : "pb-24"}>
         <Outlet />
       </div>
-      <RecommendPrompt />
+      {hideChrome ? null : <RecommendPrompt />}
       {hideChrome ? null : (
-        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-card/95 backdrop-blur-sm">
+        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm">
           <ul className="mx-auto grid max-w-lg grid-cols-5">
             {tabs.map((tab) => (
               <li key={tab.to}>

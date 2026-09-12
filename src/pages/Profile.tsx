@@ -5,6 +5,7 @@ import { getTechniqueProgress, listTechniques } from "../services/techniqueServi
 import { listCookingHistory } from "../services/historyService";
 import { updateProfile } from "../services/profileService";
 import { LanguageToggle } from "../components/common/LanguageToggle";
+import { ProgressBar } from "../components/common/ProgressBar";
 import { CardSkeleton, ErrorState, EmptyState } from "../components/common/Feedback";
 import { useLocale } from "../i18n/locale";
 import type { Technique, TechniqueProgress } from "../types/technique";
@@ -86,9 +87,7 @@ export function Profile() {
           <section className="mt-6 rounded-[1.5rem] border border-line bg-card p-5">
             <p className="text-sm text-muted">{t("profileProgress")}</p>
             <p className="mt-1 text-2xl font-semibold">{percent}%</p>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-line">
-              <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
-            </div>
+            <ProgressBar value={percent} />
             <ul className="mt-4 space-y-2 text-sm">
               {techniques.map((technique) => {
                 const status =

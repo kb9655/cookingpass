@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { MediaSlot } from "../components/common/MediaSlot";
 import { ErrorState, Skeleton } from "../components/common/Feedback";
 import { StarRating } from "../components/common/StarRating";
+import { LessonProgress } from "../components/technique/LessonProgress";
 import { ScoreStars } from "../components/technique/ScoreStars";
 import { TechniqueCard } from "../components/technique/TechniqueCard";
 import { useAuth } from "../hooks/useAuth";
@@ -16,7 +18,27 @@ import type {
   TechniqueEvaluation,
   TechniqueProgress,
   TechniqueProgressStatus,
+  TechniqueStep,
 } from "../types/technique";
+
+type WizardScreen =
+  | { type: "intro" }
+  | { type: "caution" }
+  | { type: "explain"; stepIndex: number }
+  | { type: "eval"; stepIndex: number }
+  | { type: "summary" }
+  | { type: "related" };
+
+function buildScreens(stepCount: number): WizardScreen[] {
+  const screens: WizardScreen[] = [{ type: "intro" }, { type: "caution" }];
+  for (let index = 0; index < stepCount; index += 1) {
+    screens.push({ type: "explain", stepIndex: index });
+    screens.push({ type: "eval", stepIndex: index });
+  }
+  if (stepCount > 0) screens.push({ type: "summary" });
+  screens.push({ type: "related" });
+  return screens;
+}
 
 export function TechniqueDetail() {
   const { id = "" } = useParams();
@@ -32,6 +54,8 @@ export function TechniqueDetail() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [screenIndex, setScreenIndex] = useState(0);
+  const evaluateStarted = useRef(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !id) {
@@ -44,6 +68,8 @@ export function TechniqueDetail() {
     setResult(null);
     setPhotos({});
     setPreviews({});
+    setScreenIndex(0);
+    evaluateStarted.current = false;
     Promise.all([
       getTechniqueDetail(id),
       user ? getTechniqueProgress(user.id) : Promise.resolve([]),
@@ -72,6 +98,9 @@ export function TechniqueDetail() {
     };
   }, [previews]);
 
+  const screens = useMemo(() => buildScreens(detail?.steps.length ?? 0), [detail?.steps.length]);
+  const screen = screens[Math.min(screenIndex, screens.length - 1)] ?? { type: "intro" as const };
+
   function onPickPhoto(stepId: string, file: File | null) {
     setPhotos((current) => ({ ...current, [stepId]: file }));
     setPreviews((current) => {
@@ -83,7 +112,22 @@ export function TechniqueDetail() {
     });
   }
 
-  async function onEvaluate() {
+  function stepHasPhoto(step: TechniqueStep | undefined) {
+    return Boolean(step && photos[step.id]);
+  }
+
+  function canLeave(from: WizardScreen) {
+    if (from.type !== "eval" || !detail) return true;
+    return stepHasPhoto(detail.steps[from.stepIndex]);
+  }
+
+  const canPrev = screenIndex > 0;
+  const canNext =
+    screenIndex < screens.length - 1 &&
+    canLeave(screen) &&
+    (screen.type !== "summary" || Boolean(result));
+
+  async function runEvaluate() {
     if (!detail) return;
     if (!user) {
       navigate("/login", { state: { from: `/techniques/${id}` } });
@@ -109,6 +153,7 @@ export function TechniqueDetail() {
       setResult(next);
       if (next.passed) setStatus("cleared");
     } catch (err) {
+      evaluateStarted.current = false;
       const message =
         err instanceof ApiError
           ? err.message
@@ -119,6 +164,23 @@ export function TechniqueDetail() {
     } finally {
       setSaving(false);
     }
+  }
+
+  useEffect(() => {
+    if (screen.type !== "summary" || result || evaluateStarted.current) return;
+    evaluateStarted.current = true;
+    void runEvaluate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen.type, result]);
+
+  function goTo(nextIndex: number) {
+    if (nextIndex < 0 || nextIndex >= screens.length) return;
+    if (nextIndex > screenIndex && !canLeave(screen)) {
+      setError(t("techniquesNeedPhoto"));
+      return;
+    }
+    setError("");
+    setScreenIndex(nextIndex);
   }
 
   if (loading) {
@@ -148,18 +210,17 @@ export function TechniqueDetail() {
   }
 
   const isParent = detail.children.length > 0;
-
-  return (
-    <main className="page pb-8">
-      <p className="text-sm text-muted">Stage {String(detail.stage_number > 70 ? 7 : detail.stage_number).padStart(2, "0")}</p>
-      <h1 className="mt-1 text-3xl font-semibold tracking-tight">{detail.name}</h1>
-      <div className="mt-3 flex items-center gap-3 text-sm text-muted">
-        <StarRating value={detail.difficulty} />
-        <span>약 {detail.estimated_minutes}분</span>
-      </div>
-      <p className="mt-4 text-sm leading-relaxed text-muted">{detail.description}</p>
-
-      {isParent ? (
+  if (isParent) {
+    return (
+      <main className="page pb-8">
+        <Link to="/techniques" className="text-sm font-medium text-accent">
+          {t("techniquesTitle")}
+        </Link>
+        <p className="mt-4 text-sm text-muted">
+          Stage {String(detail.stage_number > 70 ? 7 : detail.stage_number).padStart(2, "0")}
+        </p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight">{detail.name}</h1>
+        <p className="mt-4 text-sm leading-relaxed text-muted">{detail.description}</p>
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("techniquesVariants")}</h2>
           <p className="mt-2 text-sm text-muted">{t("techniquesVariantsLead")}</p>
@@ -177,144 +238,179 @@ export function TechniqueDetail() {
             })}
           </div>
         </section>
-      ) : null}
+      </main>
+    );
+  }
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold">{t("techniquesGoals")}</h2>
-        <ul className="mt-3 space-y-2 text-sm text-muted">
-          {detail.learning_goals.map((goal) => (
-            <li key={goal}>{goal}</li>
-          ))}
-        </ul>
-      </section>
+  const step =
+    screen.type === "explain" || screen.type === "eval" ? detail.steps[screen.stepIndex] : undefined;
+  const showDots = screen.type === "explain" || screen.type === "eval";
+  const currentStep = screen.type === "explain" || screen.type === "eval" ? screen.stepIndex : 0;
+  const unlearnedRelated = detail.related.filter((item) => {
+    if (item.id === detail.id) return false;
+    return progress.find((row) => row.technique_id === item.id)?.status !== "cleared";
+  });
 
-      <section className="mt-6">
-        <h2 className="text-lg font-semibold">{t("techniquesTools")}</h2>
-        <p className="mt-2 text-sm text-muted">{detail.required_tools.join(", ")}</p>
-      </section>
-
-      <section className="mt-6">
-        <h2 className="text-lg font-semibold">{t("techniquesPrecautions")}</h2>
-        <ul className="mt-3 space-y-2 text-sm text-muted">
+  let body: ReactNode = null;
+  if (screen.type === "intro") {
+    body = (
+      <div>
+        <p className="text-sm text-muted">
+          Stage {String(detail.stage_number > 70 ? 7 : detail.stage_number).padStart(2, "0")}
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">{detail.name}</h1>
+        <div className="mt-3 flex items-center gap-3 text-sm text-muted">
+          <StarRating value={detail.difficulty} />
+          <span>{t("techniquesMinutes", { n: detail.estimated_minutes })}</span>
+        </div>
+        <p className="mt-4 text-sm leading-relaxed text-muted">{detail.description}</p>
+        {status === "cleared" ? (
+          <p className="mt-6 text-sm font-semibold text-accent">{t("techniquesAlreadyCleared")}</p>
+        ) : null}
+      </div>
+    );
+  } else if (screen.type === "caution") {
+    body = (
+      <div>
+        <h2 className="text-2xl font-semibold">{t("techniquesPrecautions")}</h2>
+        <ul className="mt-4 space-y-3 text-sm leading-relaxed text-muted">
           {detail.precautions.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
-      </section>
-
-      {!isParent ? (
-        <section className="mt-8 space-y-6">
-          <h2 className="text-lg font-semibold">{t("techniquesSteps")}</h2>
-          {detail.capture_hint ? (
-            <p className="rounded-2xl border border-line bg-card px-4 py-3 text-sm text-muted">
-              {detail.capture_hint}
-            </p>
-          ) : null}
-          {detail.target_size ? (
-            <p className="text-sm text-muted">{t("techniquesTargetSize", { size: detail.target_size })}</p>
-          ) : null}
-          {detail.steps.map((step) => (
-            <article key={step.id} className="rounded-[1.5rem] border border-line bg-card p-4">
-              <p className="text-xs font-medium text-muted">STEP {step.step_number}</p>
-              {step.title ? <h3 className="mt-1 font-semibold">{step.title}</h3> : null}
-              <p className="mt-2 text-sm leading-relaxed text-muted">{step.instruction}</p>
-              <div className="mt-4">
-                <MediaSlot
-                  media={step.media}
-                  label={step.title ?? `${detail.name} ${step.step_number}단계`}
-                />
-              </div>
-              <label className="mt-4 block">
-                <span className="text-sm font-medium">{t("techniquesUpload")}</span>
-                <input
-                  className="mt-2 block w-full text-sm"
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(event) => onPickPhoto(step.id, event.target.files?.[0] ?? null)}
-                />
-              </label>
-              {previews[step.id] ? (
-                <img
-                  src={previews[step.id]}
-                  alt={`${step.step_number}단계 연습 사진`}
-                  className="mt-3 w-full rounded-[1.25rem] object-cover"
-                />
-              ) : null}
-            </article>
-          ))}
-        </section>
-      ) : null}
-
-      {detail.related.length > 0 ? (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("techniquesRelated")}</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {detail.related.map((item) => (
-              <Link
-                key={item.id}
-                to={`/techniques/${item.id}`}
-                className="rounded-full border border-line bg-card px-3 py-1 text-sm"
-              >
-                {item.name}
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {detail.recipes.length > 0 ? (
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold">{t("techniquesRecipes")}</h2>
-          <div className="mt-3 grid gap-2">
-            {detail.recipes.map((recipe) => (
-              <Link
-                key={recipe.id}
-                to={`/recipes/${recipe.id}`}
-                className="rounded-2xl border border-line bg-card px-4 py-3 text-sm font-medium"
-              >
-                {recipe.name}
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {result ? (
-        <section className="mt-8 rounded-[1.5rem] border border-line bg-card p-5">
-          <p className="text-xs font-semibold text-accent">
-            {result.passed ? t("techniquesPassed") : t("techniquesKeepGoing")}
+      </div>
+    );
+  } else if (screen.type === "explain" && step) {
+    body = (
+      <div>
+        <p className="text-xs font-medium text-muted">{t("techniquesExplainStep")}</p>
+        <p className="mt-1 text-xs text-muted">STEP {step.step_number}</p>
+        {step.title ? <h2 className="mt-2 text-2xl font-semibold">{step.title}</h2> : null}
+        <p className="mt-3 text-sm leading-relaxed text-muted">{step.instruction}</p>
+        <div className="mt-4">
+          <MediaSlot media={step.media} label={step.title ?? `${detail.name} ${step.step_number}`} />
+        </div>
+        {detail.capture_hint ? (
+          <p className="mt-4 rounded-2xl border border-line bg-card px-4 py-3 text-sm text-muted">
+            {detail.capture_hint}
           </p>
-          <h2 className="mt-1 text-xl font-semibold">{result.headline}</h2>
-          <div className="mt-3">
-            <ScoreStars scores={result.last_item_scores} />
-          </div>
-          <ul className="mt-4 space-y-2 text-sm">
-            {result.items.map((item) => (
-              <li key={item.criterion_id}>
-                <span className={item.score >= 2 ? "text-accent" : "text-muted"}>
-                  {item.score >= 2 ? "✓" : "△"} {item.feedback}
-                </span>
-                {item.is_safety ? (
-                  <span className="ml-2 text-xs text-red-700">{t("techniquesSafety")}</span>
-                ) : null}
-              </li>
+        ) : null}
+        {detail.target_size ? (
+          <p className="mt-2 text-sm text-muted">{t("techniquesTargetSize", { size: detail.target_size })}</p>
+        ) : null}
+      </div>
+    );
+  } else if (screen.type === "eval" && step) {
+    body = (
+      <div>
+        <p className="text-xs font-medium text-muted">{t("techniquesEvalStep")}</p>
+        <p className="mt-1 text-xs text-muted">STEP {step.step_number}</p>
+        {step.title ? <h2 className="mt-2 text-2xl font-semibold">{step.title}</h2> : null}
+        <label className="mt-4 block">
+          <span className="text-sm font-medium">{t("techniquesUpload")}</span>
+          <input
+            className="mt-2 block min-h-11 w-full text-base"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(event) => onPickPhoto(step.id, event.target.files?.[0] ?? null)}
+          />
+        </label>
+        {previews[step.id] ? (
+          <img
+            src={previews[step.id]}
+            alt={`${step.step_number}`}
+            className="mt-3 w-full rounded-[1.25rem] object-cover"
+          />
+        ) : null}
+      </div>
+    );
+  } else if (screen.type === "summary") {
+    body = result ? (
+      <section>
+        <p className="text-xs font-semibold text-accent">
+          {result.passed ? t("techniquesPassed") : t("techniquesKeepGoing")}
+        </p>
+        <h2 className="mt-1 text-2xl font-semibold">{t("techniquesSummary")}</h2>
+        <p className="mt-2 text-lg font-semibold">{result.headline}</p>
+        <div className="mt-3">
+          <ScoreStars scores={result.last_item_scores} animate />
+        </div>
+        <ul className="mt-4 space-y-2 text-sm">
+          {result.items.map((item) => (
+            <li key={item.criterion_id}>
+              <span className={item.score >= 2 ? "text-accent" : "text-muted"}>
+                {item.score >= 2 ? "✓" : "△"} {item.feedback}
+              </span>
+              {item.is_safety ? (
+                <span className="ml-2 text-xs text-red-700">{t("techniquesSafety")}</span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-sm text-muted">{result.next_practice}</p>
+      </section>
+    ) : (
+      <p className="text-sm text-muted">{saving ? t("techniquesEvaluating") : t("techniquesSummary")}</p>
+    );
+  } else {
+    body = (
+      <section>
+        <h2 className="text-2xl font-semibold">{t("techniquesRecommend")}</h2>
+        {unlearnedRelated.length > 0 ? (
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {unlearnedRelated.map((item, index) => (
+              <TechniqueCard
+                key={item.id}
+                technique={{ ...item, stage_number: index + 1 }}
+                status="unlocked"
+              />
             ))}
-          </ul>
-          <p className="mt-4 text-sm text-muted">{result.next_practice}</p>
-        </section>
-      ) : null}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted">{t("techniquesRelated")}</p>
+        )}
+        <Link to="/" className="btn-secondary mt-6 w-full">
+          {t("techniquesLobby")}
+        </Link>
+      </section>
+    );
+  }
 
-      {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
-
-      {!isParent ? (
-        <button className="btn-primary mt-8 w-full" type="button" onClick={onEvaluate} disabled={saving}>
-          {saving ? t("techniquesEvaluating") : t("techniquesEvaluate")}
+  return (
+    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+      {showDots ? <LessonProgress total={detail.steps.length} current={currentStep} /> : null}
+      <div className="flex min-h-0 flex-1 items-stretch gap-1">
+        <button
+          type="button"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-center text-ink disabled:text-line"
+          aria-label={t("techniquesPrev")}
+          disabled={!canPrev}
+          onClick={() => goTo(screenIndex - 1)}
+        >
+          <ChevronLeft className="h-8 w-8" strokeWidth={2} />
         </button>
-      ) : null}
-
-      {status === "cleared" && !result ? (
-        <p className="mt-6 text-sm font-semibold text-accent">{t("techniquesAlreadyCleared")}</p>
+        <div className="min-w-0 flex-1 overflow-y-auto py-4">{body}</div>
+        <button
+          type="button"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-center text-ink disabled:text-line"
+          aria-label={t("techniquesNext")}
+          disabled={!canNext}
+          onClick={() => goTo(screenIndex + 1)}
+        >
+          <ChevronRight className="h-8 w-8" strokeWidth={2} />
+        </button>
+      </div>
+      {error ? <p className="mb-2 text-sm text-red-700">{error}</p> : null}
+      {screen.type !== "related" ? (
+        <button
+          className="btn-primary mb-2 min-h-11 w-full"
+          type="button"
+          disabled={!canNext || saving}
+          onClick={() => goTo(screenIndex + 1)}
+        >
+          {saving ? t("techniquesEvaluating") : t("techniquesNext")}
+        </button>
       ) : null}
     </main>
   );
