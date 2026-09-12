@@ -56,10 +56,10 @@ export function RecommendPrompt() {
     if (shownThisSession && !justLoggedIn && !dueByCooldown) return;
 
     if (justLoggedIn) sessionStorage.removeItem(JUST_LOGIN_KEY);
-    markShown(user.id);
 
     const draft = loadCookingDraft();
     if (draft) {
+      markShown(user.id);
       setDraftTitle(draft.recipe.title);
       setDraftRecipeId(draft.recipeId);
       setDraftProgress(`${draft.progressIndex + 1}/${draft.recipe.steps.length}`);
@@ -82,6 +82,7 @@ export function RecommendPrompt() {
       .then((scored) => {
         const top = scored.slice(0, 3);
         if (top.length === 0) return;
+        markShown(user.id);
         setRecipes(top);
         setMode("recommend");
       })

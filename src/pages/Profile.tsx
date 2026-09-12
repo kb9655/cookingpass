@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { getTechniqueProgress, listTechniques } from "../services/techniqueService";
+import { ConfirmDialog } from "../components/common/ConfirmDialog";
+import { getTechniqueProgress, listTechniques, resetAllTechniqueProgress } from "../services/techniqueService";
 import { listCookingHistory } from "../services/historyService";
 import { updateProfile } from "../services/profileService";
 import { LanguageToggle } from "../components/common/LanguageToggle";
@@ -21,6 +22,8 @@ export function Profile() {
   const [history, setHistory] = useState<CookingHistory[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [experience, setExperience] = useState<ExperienceLevel>(profile?.experience_level ?? "beginner");
   const [tools, setTools] = useState<string[]>(profile?.available_tools ?? []);
 
@@ -55,6 +58,22 @@ export function Profile() {
     };
   }, [user]);
 
+  async function resetProgress() {
+    if (!user) return;
+    setError("");
+    setResetting(true);
+    try {
+      await resetAllTechniqueProgress(user.id);
+      const nextProgress = await getTechniqueProgress(user.id);
+      setProgress(nextProgress);
+      setResetOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("profileResetError"));
+    } finally {
+      setResetting(false);
+    }
+  }
+
   const cleared = progress.filter((item) => item.status === "cleared").length;
   const percent = techniques.length ? Math.round((cleared / techniques.length) * 100) : 0;
 
@@ -88,6 +107,13 @@ export function Profile() {
             <p className="text-sm text-muted">{t("profileProgress")}</p>
             <p className="mt-1 text-2xl font-semibold">{percent}%</p>
             <ProgressBar value={percent} />
+            <button
+              type="button"
+              className="btn-secondary mt-4 w-full"
+              onClick={() => setResetOpen(true)}
+            >
+              {t("profileResetProgress")}
+            </button>
             <ul className="mt-4 space-y-2 text-sm">
               {techniques.map((technique) => {
                 const status =
@@ -190,6 +216,17 @@ export function Profile() {
       <button type="button" className="btn-secondary mt-8 w-full" onClick={() => void signOut()}>
         {t("profileLogout")}
       </button>
+      {resetOpen ? (
+        <ConfirmDialog
+          title={t("profileResetConfirm")}
+          confirmLabel={resetting ? t("profileResetting") : t("profileResetProgress")}
+          busy={resetting}
+          onConfirm={() => void resetProgress()}
+          onClose={() => {
+            if (!resetting) setResetOpen(false);
+          }}
+        />
+      ) : null}
     </main>
   );
 }

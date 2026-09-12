@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useLocale } from "../../i18n/locale";
 import type { ScoredRecipe } from "../../types/recipe";
@@ -22,8 +23,8 @@ export function RecommendDialog({
 }: RecommendDialogProps) {
   const { t } = useLocale();
 
-  return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/40 px-4 pb-24 pt-8 sm:items-center sm:pb-8">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/40 px-4">
       <button
         type="button"
         className="absolute inset-0 cursor-default"
@@ -77,6 +78,7 @@ export function RecommendDialog({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

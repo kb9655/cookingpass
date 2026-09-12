@@ -30,6 +30,17 @@ body {
   min-height: 100dvh;
 }
 
+iframe[title*="Netlify" i],
+iframe[src*="netlify"],
+a[aria-label*="Netlify" i],
+a[href*="netlify.com"][style*="position"],
+a[href*="netlify.com"][id*="netlify" i],
+[data-netlify-badge],
+#netlify-badge,
+#netlify-watermark {
+  display: none !important;
+}
+
 .page {
   @apply mx-auto w-full max-w-lg px-4 py-6;
   padding-top: max(1.5rem, env(safe-area-inset-top));

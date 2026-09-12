@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { MediaSlot } from "../components/common/MediaSlot";
 import { ErrorState, Skeleton } from "../components/common/Feedback";
 import { StarRating } from "../components/common/StarRating";
@@ -12,7 +13,12 @@ import { useLocale } from "../i18n/locale";
 import { ApiError, evaluateTechnique } from "../lib/api";
 import { fileToJpegBase64 } from "../lib/compressImage";
 import { isSupabaseConfigured } from "../lib/supabase";
-import { getTechniqueDetail, getTechniqueProgress, saveTechniqueScores } from "../services/techniqueService";
+import {
+  getTechniqueDetail,
+  getTechniqueProgress,
+  resetTechniqueProgress,
+  saveTechniqueScores,
+} from "../services/techniqueService";
 import type {
   TechniqueCriterion,
   TechniqueDetail,
@@ -74,12 +80,15 @@ export function TechniqueDetail() {
   const [stepResults, setStepResults] = useState<Record<string, TechniqueEvaluation>>({});
   const [stepStatus, setStepStatus] = useState<Record<string, StepEvalStatus>>({});
   const [popup, setPopup] = useState<EvalPopup>(null);
+  const [retryClearedOpen, setRetryClearedOpen] = useState(false);
+  const [resettingCleared, setResettingCleared] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [screenIndex, setScreenIndex] = useState(0);
   const evaluateStarted = useRef<Record<string, boolean>>({});
   const progressSaved = useRef(false);
+  const clearedAcked = useRef(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !id) {
@@ -92,11 +101,14 @@ export function TechniqueDetail() {
     setStepResults({});
     setStepStatus({});
     setPopup(null);
+    setRetryClearedOpen(false);
+    setResettingCleared(false);
     setPhotos({});
     setPreviews({});
     setScreenIndex(0);
     evaluateStarted.current = {};
     progressSaved.current = false;
+    clearedAcked.current = false;
     Promise.all([
       getTechniqueDetail(id),
       user ? getTechniqueProgress(user.id) : Promise.resolve([]),
@@ -285,7 +297,31 @@ export function TechniqueDetail() {
     if (dest >= 0) goTo(dest);
   }
 
+  async function confirmRetryCleared() {
+    if (!detail) return;
+    setResettingCleared(true);
+    setError("");
+    try {
+      if (user) {
+        await resetTechniqueProgress(user.id, detail.id, detail.parent_id);
+      }
+      setStatus("unlocked");
+      progressSaved.current = false;
+      clearedAcked.current = true;
+      setRetryClearedOpen(false);
+      goTo(screenIndex + 1);
+    } catch {
+      setError(t("profileResetError"));
+    } finally {
+      setResettingCleared(false);
+    }
+  }
+
   function goForward() {
+    if (screen.type === "intro" && status === "cleared" && !clearedAcked.current) {
+      setRetryClearedOpen(true);
+      return;
+    }
     if (screen.type === "practice" && detail) {
       const current = detail.steps[screen.stepIndex];
       if (current && !stepHasPhoto(current)) {
@@ -620,27 +656,20 @@ export function TechniqueDetail() {
         </div>
       )}
       {popup ? (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/40 px-4 pb-24 pt-8 sm:items-center sm:pb-8">
-          <button
-            type="button"
-            className="absolute inset-0 cursor-default"
-            aria-label={t("techniquesConfirm")}
-            onClick={() => setPopup(null)}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="eval-skip-dialog-title"
-            className="relative z-10 w-full max-w-lg rounded-[1.75rem] border border-line bg-card p-5 shadow-lg"
-          >
-            <p id="eval-skip-dialog-title" className="text-base font-semibold">
-              {popup === "no-photo" ? t("techniquesSkipNoPhoto") : t("techniquesSkipBadPhoto")}
-            </p>
-            <button type="button" className="btn-primary mt-5 w-full" onClick={() => setPopup(null)}>
-              {t("techniquesConfirm")}
-            </button>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={popup === "no-photo" ? t("techniquesSkipNoPhoto") : t("techniquesSkipBadPhoto")}
+          onClose={() => setPopup(null)}
+        />
+      ) : null}
+      {retryClearedOpen ? (
+        <ConfirmDialog
+          title={t("techniquesRetryCleared")}
+          busy={resettingCleared}
+          onConfirm={() => void confirmRetryCleared()}
+          onClose={() => {
+            if (!resettingCleared) setRetryClearedOpen(false);
+          }}
+        />
       ) : null}
     </main>
   );

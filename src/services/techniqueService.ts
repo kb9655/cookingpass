@@ -173,6 +173,43 @@ export async function saveTechniqueScores(
   if (parentId) await upsert(parentId);
 }
 
+export async function resetTechniqueProgress(
+  userId: string,
+  techniqueId: string,
+  parentId?: string | null,
+): Promise<void> {
+  const supabase = requireSupabase();
+
+  async function reset(targetId: string) {
+    const { error } = await supabase
+      .from("user_technique_progress")
+      .update({
+        status: "unlocked",
+        cleared_at: null,
+        last_item_scores: null,
+      })
+      .eq("user_id", userId)
+      .eq("technique_id", targetId);
+    if (error) throw error;
+  }
+
+  await reset(techniqueId);
+  if (parentId) await reset(parentId);
+}
+
+export async function resetAllTechniqueProgress(userId: string): Promise<void> {
+  const supabase = requireSupabase();
+  const { error } = await supabase
+    .from("user_technique_progress")
+    .update({
+      status: "unlocked",
+      cleared_at: null,
+      last_item_scores: null,
+    })
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
 export function scoresForTechnique(
   techniqueId: string,
   childIds: string[],
