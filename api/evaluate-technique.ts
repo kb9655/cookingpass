@@ -1,13 +1,103 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { errorResponse, json, requireUser } from "./_shared/auth";
-import { env } from "./_shared/env";
-import {
-  evaluationResultJsonSchema,
-  evaluationResultSchema,
-  evaluateTechniqueRequestSchema,
-} from "./_shared/schema";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import { z } from "zod";
 
 export const maxDuration = 10;
+
+function env(name: string): string | undefined {
+  return process.env[name];
+}
+
+function json(data: unknown, status = 200): Response {
+  return Response.json(data, {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+  });
+}
+
+function errorResponse(message: string, status: number): Response {
+  return json({ error: message }, status);
+}
+
+function getSupabaseForUser(request: Request): SupabaseClient | null {
+  const url = env("SUPABASE_URL") ?? env("VITE_SUPABASE_URL");
+  const anonKey = env("SUPABASE_ANON_KEY") ?? env("VITE_SUPABASE_ANON_KEY");
+  if (!url || !anonKey) return null;
+  return createClient(url, anonKey, {
+    global: { headers: { Authorization: request.headers.get("Authorization") ?? "" } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function requireUser(request: Request): Promise<
+  { supabase: SupabaseClient; user: User } | { error: Response }
+> {
+  const supabase = getSupabaseForUser(request);
+  if (!supabase) return { error: errorResponse("Supabase가 설정되지 않았습니다.", 500) };
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) return { error: errorResponse("로그인이 필요합니다.", 401) };
+  return { supabase, user };
+}
+
+const evaluateTechniqueRequestSchema = z.object({
+  technique_id: z.string().uuid(),
+  photos: z
+    .array(
+      z.object({
+        step_number: z.number().int().min(1),
+        mime_type: z.enum(["image/jpeg", "image/png", "image/webp"]),
+        data: z.string().min(80).max(1_400_000),
+      }),
+    )
+    .min(1)
+    .max(4),
+  step_number: z.number().int().min(1).optional(),
+  persist_progress: z.boolean().optional(),
+});
+
+const evaluationResultSchema = z.object({
+  image_relevant: z.boolean(),
+  items: z
+    .array(
+      z.object({
+        sort_order: z.number().int().min(1).max(3),
+        score: z.number().int().min(1).max(3),
+        feedback: z.string().min(1).max(240),
+      }),
+    )
+    .length(3),
+  headline: z.string().min(1).max(80),
+  next_practice: z.string().min(1).max(160),
+});
+
+const evaluationResultJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["image_relevant", "items", "headline", "next_practice"],
+  properties: {
+    image_relevant: { type: "boolean" },
+    items: {
+      type: "array",
+      minItems: 3,
+      maxItems: 3,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["sort_order", "score", "feedback"],
+        properties: {
+          sort_order: { type: "integer", minimum: 1, maximum: 3 },
+          score: { type: "integer", minimum: 1, maximum: 3 },
+          feedback: { type: "string" },
+        },
+      },
+    },
+    headline: { type: "string" },
+    next_practice: { type: "string" },
+  },
+};
 
 type Criterion = {
   id: string;
@@ -34,7 +124,7 @@ function passedEvaluation(criteria: Criterion[], scoresByOrder: Map<number, numb
   return safetyOk && achieved >= 2;
 }
 
-export async function POST(req: Request) {
+async function handlePost(req: Request) {
   if (req.method !== "POST") {
     return errorResponse("POST만 허용됩니다.", 405);
   }
@@ -250,6 +340,40 @@ export async function POST(req: Request) {
     items: itemScores,
     last_item_scores: lastItemScores,
   });
+}
+
+async function writeNodeResponse(
+  res: { statusCode: number; setHeader: (name: string, value: string) => void; end: (body?: string | Buffer) => void },
+  response: Response,
+) {
+  res.statusCode = response.status;
+  response.headers.forEach((value, key) => {
+    res.setHeader(key, value);
+  });
+  res.end(Buffer.from(await response.arrayBuffer()));
+}
+
+export async function POST(
+  req: Request,
+  res?: { statusCode: number; setHeader: (name: string, value: string) => void; end: (body?: string | Buffer) => void },
+) {
+  const nodeReq = req as Request & { headers?: Record<string, string | string[] | undefined>; body?: unknown };
+  const request =
+    req instanceof Request
+      ? req
+      : new Request("https://vercel.local/api/evaluate-technique", {
+          method: "POST",
+          headers: nodeReq.headers?.authorization
+            ? { Authorization: String(nodeReq.headers.authorization) }
+            : undefined,
+          body: JSON.stringify(nodeReq.body ?? {}),
+        });
+  const response = await handlePost(request);
+  if (res && !(req instanceof Request)) {
+    await writeNodeResponse(res, response);
+    return;
+  }
+  return response;
 }
 
 export default POST;

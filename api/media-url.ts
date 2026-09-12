@@ -1,7 +1,44 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { errorResponse, getSupabaseForUser, json, requireUser } from "./_shared/auth";
-import { env } from "./_shared/env";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+
+function env(name: string): string | undefined {
+  return process.env[name];
+}
+
+function json(data: unknown, status = 200): Response {
+  return Response.json(data, {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+  });
+}
+
+function errorResponse(message: string, status: number): Response {
+  return json({ error: message }, status);
+}
+
+function getSupabaseForUser(request: Request): SupabaseClient | null {
+  const url = env("SUPABASE_URL") ?? env("VITE_SUPABASE_URL");
+  const anonKey = env("SUPABASE_ANON_KEY") ?? env("VITE_SUPABASE_ANON_KEY");
+  if (!url || !anonKey) return null;
+  return createClient(url, anonKey, {
+    global: { headers: { Authorization: request.headers.get("Authorization") ?? "" } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function requireUser(request: Request): Promise<
+  { supabase: SupabaseClient; user: User } | { error: Response }
+> {
+  const supabase = getSupabaseForUser(request);
+  if (!supabase) return { error: errorResponse("Supabase가 설정되지 않았습니다.", 500) };
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) return { error: errorResponse("로그인이 필요합니다.", 401) };
+  return { supabase, user };
+}
 
 async function signedR2Url(storagePath: string): Promise<string | null> {
   const publicBase = env("R2_PUBLIC_BASE_URL");
@@ -30,7 +67,7 @@ async function signedR2Url(storagePath: string): Promise<string | null> {
   );
 }
 
-export async function POST(req: Request) {
+async function handlePost(req: Request) {
   if (req.method !== "POST") {
     return errorResponse("POST만 허용됩니다.", 405);
   }
@@ -78,6 +115,39 @@ export async function POST(req: Request) {
     console.error("media-url error:", error);
     return errorResponse("미디어 URL을 만들지 못했습니다.", 502);
   }
+}
+
+async function writeNodeResponse(
+  res: { statusCode: number; setHeader: (name: string, value: string) => void; end: (body?: string | Buffer) => void },
+  response: Response,
+) {
+  res.statusCode = response.status;
+  response.headers.forEach((value, key) => {
+    res.setHeader(key, value);
+  });
+  res.end(Buffer.from(await response.arrayBuffer()));
+}
+
+export async function POST(
+  req: Request,
+  res?: { statusCode: number; setHeader: (name: string, value: string) => void; end: (body?: string | Buffer) => void },
+) {
+  const request =
+    req instanceof Request
+      ? req
+      : new Request("https://vercel.local/api/media-url", {
+          method: "POST",
+          headers: (req as { headers?: { authorization?: string } }).headers?.authorization
+            ? { Authorization: String((req as { headers: { authorization?: string } }).headers.authorization) }
+            : undefined,
+          body: JSON.stringify((req as { body?: unknown }).body ?? {}),
+        });
+  const response = await handlePost(request);
+  if (res && !(req instanceof Request)) {
+    await writeNodeResponse(res, response);
+    return;
+  }
+  return response;
 }
 
 export default POST;

@@ -7,8 +7,12 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    netlify({
-      edgeFunctions: { enabled: false },
-    }),
+    ...(process.env.VERCEL
+      ? []
+      : [
+          netlify({
+            edgeFunctions: { enabled: false },
+          }),
+        ]),
   ],
 });
