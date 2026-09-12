@@ -92,6 +92,32 @@ export const LOCAL_TECHNIQUES: (Technique & { keywords: string[] })[] = [
     stage_number: 7,
     keywords: ["stir-fry", "stir fry", "saute", "sauté", "fry"],
   },
+  {
+    id: "a1111111-1111-4111-8111-111111111108",
+    slug: "boil",
+    name: "끓이기",
+    description: "물이나 육수를 끓여 재료가 잠긴 채로 익게 합니다.",
+    difficulty: 1,
+    estimated_minutes: 8,
+    learning_goals: [],
+    required_tools: ["냄비"],
+    precautions: [],
+    stage_number: 8,
+    keywords: ["boil", "simmer", "bring to a boil", "boiling water"],
+  },
+  {
+    id: "a1111111-1111-4111-8111-111111111109",
+    slug: "season-toss",
+    name: "양념 버무리기",
+    description: "양념을 재료에 고르게 묻혀 섞습니다.",
+    difficulty: 1,
+    estimated_minutes: 6,
+    learning_goals: [],
+    required_tools: ["볼", "숟가락"],
+    precautions: [],
+    stage_number: 9,
+    keywords: ["toss", "tossed", "coat", "mix until", "season with"],
+  },
 ];
 
 export function inferTechniqueIds(text: string): string[] {

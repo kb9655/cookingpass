@@ -4,10 +4,12 @@ import {
   Carrot,
   ChefHat,
   CookingPot,
+  Droplets,
   Flame,
   FlaskConical,
   Grid2x2,
   Layers,
+  Salad,
   Utensils,
 } from "lucide-react";
 
@@ -19,6 +21,8 @@ const ICONS_BY_SLUG: Record<string, LucideIcon> = {
   slice: Layers,
   "preheat-pan": Flame,
   "stir-fry": CookingPot,
+  boil: Droplets,
+  "season-toss": Salad,
   "practice-eval-test": FlaskConical,
 };
 
