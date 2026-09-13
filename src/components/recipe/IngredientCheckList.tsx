@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatAmount } from "../../lib/formatAmount";
 import { useLocale } from "../../i18n/locale";
 import {
   deleteUserIngredientByIngredientId,
@@ -101,7 +102,10 @@ export function IngredientCheckList({
               <div>
                 <p className="text-sm font-medium">{item.name}</p>
                 <p className="text-xs text-muted">
-                  {t("recipeNeedAmount")} {ingredients.find((row) => row.ingredient_id === item.ingredient_id)?.amount}{" "}
+                  {t("recipeNeedAmount")}{" "}
+                  {formatAmount(
+                    ingredients.find((row) => row.ingredient_id === item.ingredient_id)?.amount ?? 0,
+                  )}{" "}
                   {item.unit}
                 </p>
               </div>

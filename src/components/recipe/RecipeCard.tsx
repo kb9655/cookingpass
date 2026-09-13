@@ -17,7 +17,7 @@ export function RecipeCard({
         {highlight ? (
           <p className="mb-2 text-xs font-semibold text-accent">방금 배운 기술과 연결됨</p>
         ) : null}
-        <h2 className="text-lg font-semibold">{recipe.name}</h2>
+        <h2 className="text-lg font-black">{recipe.name}</h2>
         <p className="mt-1 line-clamp-2 text-sm text-muted">{recipe.description}</p>
         <div className="mt-4 flex items-center justify-between text-xs text-muted">
           <StarRating value={recipe.difficulty} />

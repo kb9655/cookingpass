@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RecipeCard } from "../components/recipe/RecipeCard";
-import { CardSkeleton, ErrorState, EmptyState } from "../components/common/Feedback";
+import { EmptyState, ErrorState, PageLoader } from "../components/common/Feedback";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
 import { listRecipeCategories, listScoredRecipes } from "../services/recipeService";
@@ -64,7 +64,7 @@ export function Recipes() {
 
   return (
     <main className="page">
-      <h1 className="text-3xl font-semibold tracking-tight">{t("recipesTitle")}</h1>
+      <h1 className="text-3xl font-black tracking-tight">{t("recipesTitle")}</h1>
       <p className="mt-2 text-sm text-muted">{t("recipesLead")}</p>
 
       <div className="mt-5 space-y-3">
@@ -101,7 +101,7 @@ export function Recipes() {
       ) : null}
       <div className="mt-6 grid gap-3">
         {loading ? (
-          Array.from({ length: 4 }, (_, index) => <CardSkeleton key={index} />)
+          <PageLoader label={t("pageLoading")} />
         ) : recipes.length === 0 ? (
           <EmptyState title={t("recipesEmptyTitle")} body={t("recipesEmptyBody")} />
         ) : (

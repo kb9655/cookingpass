@@ -7,8 +7,9 @@ import { listCookingHistory } from "../services/historyService";
 import { updateProfile } from "../services/profileService";
 import { LanguageToggle } from "../components/common/LanguageToggle";
 import { ProgressBar } from "../components/common/ProgressBar";
-import { CardSkeleton, ErrorState, EmptyState } from "../components/common/Feedback";
+import { EmptyState, ErrorState, PageLoader } from "../components/common/Feedback";
 import { useLocale } from "../i18n/locale";
+import { playerLevelFromClears } from "../lib/playerLevel";
 import type { Technique, TechniqueProgress } from "../types/technique";
 import type { CookingHistory, ExperienceLevel } from "../types/user";
 
@@ -75,7 +76,7 @@ export function Profile() {
   }
 
   const cleared = progress.filter((item) => item.status === "cleared").length;
-  const percent = techniques.length ? Math.round((cleared / techniques.length) * 100) : 0;
+  const player = playerLevelFromClears(cleared);
 
   async function savePrefs() {
     if (!user) return;
@@ -93,20 +94,20 @@ export function Profile() {
 
   return (
     <main className="page pb-8">
-      <h1 className="text-3xl font-semibold tracking-tight">{t("profileTitle")}</h1>
+      <h1 className="text-3xl font-black tracking-tight">{t("profileTitle")}</h1>
       <p className="mt-2 text-sm text-muted">{profile?.display_name ?? user?.email}</p>
 
       {loading ? (
-        <div className="mt-6 space-y-3">
-          <CardSkeleton />
-          <CardSkeleton />
-        </div>
+        <PageLoader label={t("pageLoading")} />
       ) : (
         <>
           <section className="card-casual mt-6 p-5">
             <p className="text-sm text-muted">{t("profileProgress")}</p>
-            <p className="mt-1 text-2xl font-semibold">{percent}%</p>
-            <ProgressBar value={percent} />
+            <p className="mt-1 text-2xl font-black">{t("profileLevel", { n: player.level })}</p>
+            <p className="mt-1 text-sm text-muted">
+              {t("profileXp", { current: player.xpInLevel, next: player.xpToNext })}
+            </p>
+            <ProgressBar value={player.barPercent} />
             <button
               type="button"
               className="btn-secondary mt-4 w-full"
@@ -132,12 +133,12 @@ export function Profile() {
           </section>
 
           <section className="card-casual mt-6 p-5">
-            <h2 className="text-lg font-semibold">{t("profileSettings")}</h2>
+            <h2 className="text-lg font-black">{t("profileSettings")}</h2>
             <LanguageToggle className="mt-4" />
           </section>
 
           <section className="card-casual mt-6 p-5">
-            <h2 className="text-lg font-semibold">{t("profileCooking")}</h2>
+            <h2 className="text-lg font-black">{t("profileCooking")}</h2>
             <div className="field mt-4">
               <label htmlFor="experience">{t("profileExperience")}</label>
               <select
@@ -180,7 +181,7 @@ export function Profile() {
           </section>
 
           <section className="mt-6">
-            <h2 className="text-lg font-semibold">{t("profileHistory")}</h2>
+            <h2 className="text-lg font-black">{t("profileHistory")}</h2>
             {history.length === 0 ? (
               <div className="mt-3">
                 <EmptyState title={t("profileNoHistoryTitle")} body={t("profileNoHistoryBody")} />
@@ -191,7 +192,7 @@ export function Profile() {
                   <li key={item.id}>
                     <Link
                       to={`/recipes/${item.recipe_id}`}
-                      className="flex items-center justify-between rounded-2xl border border-line bg-card px-4 py-3 text-sm"
+                      className="card-casual flex items-center justify-between px-4 py-3 text-sm"
                     >
                       <span>{item.recipe_name}</span>
                       <span className="text-muted">

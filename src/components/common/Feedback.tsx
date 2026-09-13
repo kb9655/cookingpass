@@ -12,6 +12,19 @@ export function CardSkeleton() {
   );
 }
 
+export function PageLoader({ label }: { label: string }) {
+  return (
+    <div className="mt-16 flex flex-col items-center gap-4" role="status" aria-live="polite">
+      <div className="flex items-end gap-2">
+        <span className="page-loader-orb size-4 rounded-full bg-accent" />
+        <span className="page-loader-orb size-4 rounded-full bg-accent" />
+        <span className="page-loader-orb size-4 rounded-full bg-accent" />
+      </div>
+      <p className="text-sm font-bold text-muted">{label}</p>
+    </div>
+  );
+}
+
 export function ErrorState({
   message,
   onRetry,

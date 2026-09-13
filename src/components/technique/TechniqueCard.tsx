@@ -12,14 +12,17 @@ function scoresKey(techniqueId: string) {
 export function TechniqueCard({
   technique,
   status,
+  current,
   scores,
 }: {
   technique: Technique;
   status: TechniqueProgressStatus;
+  current?: boolean;
   scores?: number[] | null;
 }) {
   const { t } = useLocale();
   const cleared = status === "cleared";
+  const locked = status === "locked";
   const signature = JSON.stringify(scores ?? []);
   const [animate, setAnimate] = useState(false);
 
@@ -31,13 +34,22 @@ export function TechniqueCard({
     sessionStorage.setItem(scoresKey(technique.id), signature);
   }, [technique.id, scores, signature]);
 
+  const orbClass = [
+    "stage-orb",
+    cleared ? "stage-orb-clear" : "",
+    current ? "stage-orb-current" : "",
+    locked ? "stage-orb-locked" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <Link to={`/techniques/${technique.id}`} className="flex flex-col items-center gap-2 px-1 py-2">
-      <span className={`stage-tile ${cleared ? "stage-tile-clear" : ""}`}>
+    <Link to={`/techniques/${technique.id}`} className="flex w-28 flex-col items-center gap-2">
+      <span className={orbClass}>
         <TechniqueIcon slug={technique.slug} className="size-8" />
         <span className="sr-only">{cleared ? t("techniquesCleared") : technique.name}</span>
       </span>
-      <h2 className="text-center text-sm font-bold leading-snug">{technique.name}</h2>
+      <h2 className="text-center text-sm font-black leading-snug">{technique.name}</h2>
       <ScoreStars scores={scores} label={t("techniquesScoreLabel")} animate={animate} />
     </Link>
   );

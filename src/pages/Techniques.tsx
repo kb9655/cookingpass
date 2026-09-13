@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { TechniqueCard } from "../components/technique/TechniqueCard";
-import { CardSkeleton, EmptyState, ErrorState } from "../components/common/Feedback";
+import { EmptyState, ErrorState, PageLoader } from "../components/common/Feedback";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
 import { isSupabaseConfigured } from "../lib/supabase";
@@ -57,30 +57,43 @@ export function Techniques() {
     return map;
   }, [progress]);
 
+  const currentId = techniques.find((item) => (statusById.get(item.id) ?? "unlocked") !== "cleared")?.id;
+  const pathAlign = ["justify-center", "justify-start pl-2", "justify-end pr-2", "justify-center"];
+
   return (
     <main className="page">
-      <h1 className="text-3xl font-semibold tracking-tight">{t("techniquesTitle")}</h1>
+      <h1 className="text-3xl font-black tracking-tight">{t("techniquesTitle")}</h1>
       <p className="mt-2 text-sm text-muted">{t("techniquesLead")}</p>
       {error ? <div className="mt-6"><ErrorState message={error} onRetry={load} /></div> : null}
-      <div className="mt-8 grid grid-cols-3 gap-x-2 gap-y-5">
-        {!isSupabaseConfigured ? (
-            <div className="col-span-3">
-            <EmptyState
-              title="데이터베이스가 연결되지 않았습니다"
-              body=".env에 VITE_SUPABASE_URL과 VITE_SUPABASE_ANON_KEY를 넣은 뒤 시드 SQL을 적용하세요."
-            />
+      {!isSupabaseConfigured ? (
+        <div className="mt-8">
+          <EmptyState
+            title="데이터베이스가 연결되지 않았습니다"
+            body=".env에 VITE_SUPABASE_URL과 VITE_SUPABASE_ANON_KEY를 넣은 뒤 시드 SQL을 적용하세요."
+          />
+        </div>
+      ) : loading ? (
+        <PageLoader label={t("pageLoading")} />
+      ) : (
+        <div className="relative mx-auto mt-10 max-w-sm">
+          <div className="path-rail absolute top-10 bottom-10 left-1/2 w-2 -translate-x-1/2 rounded-full" />
+          <div className="relative z-10 space-y-8">
+            {techniques.map((technique, index) => {
+              const status = statusById.get(technique.id) ?? "unlocked";
+              return (
+                <div key={technique.id} className={`flex ${pathAlign[index % pathAlign.length]}`}>
+                  <TechniqueCard
+                    technique={technique}
+                    status={status}
+                    current={technique.id === currentId}
+                    scores={scoresForTechnique(technique.id, childIdsByParent[technique.id] ?? [], progress)}
+                  />
+                </div>
+              );
+            })}
           </div>
-        ) : loading
-          ? Array.from({ length: 6 }, (_, index) => <CardSkeleton key={index} />)
-          : techniques.map((technique) => (
-              <TechniqueCard
-                key={technique.id}
-                technique={technique}
-                status={statusById.get(technique.id) ?? "unlocked"}
-                scores={scoresForTechnique(technique.id, childIdsByParent[technique.id] ?? [], progress)}
-              />
-            ))}
-      </div>
+        </div>
+      )}
     </main>
   );
 }
