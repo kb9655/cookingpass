@@ -1,32 +1,19 @@
 import { Lightbulb } from "lucide-react";
-import { MediaSlot } from "../common/MediaSlot";
 import type { AdjustedStep } from "../../types/recipe";
+import { StepTimer } from "./StepTimer";
 
 export function CookingStep({
   step,
   techniqueName,
-  recipeTitle,
 }: {
   step: AdjustedStep;
   techniqueName?: string;
-  recipeTitle: string;
 }) {
+  const timed = typeof step.time_minutes === "number" && step.time_minutes > 0;
+
   return (
     <section>
       <p className="text-lg leading-relaxed">{step.instruction}</p>
-      <div className="mt-6">
-        <MediaSlot
-          media={{
-            id: "lesson-placeholder",
-            type: "image",
-            storage_path: null,
-            source_url: "/images/lessons/test-step.svg",
-            author: null,
-            license: null,
-          }}
-          label={`${recipeTitle} ${step.step}단계`}
-        />
-      </div>
       {techniqueName ? (
         <p className="mt-4 inline-flex items-center gap-2 text-sm text-accent">
           <Lightbulb className="h-4 w-4" strokeWidth={1.75} />
@@ -39,9 +26,7 @@ export function CookingStep({
       {step.tools?.length ? (
         <p className="mt-1 text-sm text-muted">도구: {step.tools.join(", ")}</p>
       ) : null}
-      {step.time_minutes ? (
-        <p className="mt-1 text-sm text-muted">시간: 약 {step.time_minutes}분</p>
-      ) : null}
+      {timed ? <StepTimer key={step.step} minutes={step.time_minutes as number} /> : null}
       {step.temperature ? (
         <p className="mt-1 text-sm text-muted">온도: {step.temperature}</p>
       ) : null}

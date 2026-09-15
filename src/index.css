@@ -97,14 +97,27 @@ a[href*="netlify.com"][id*="netlify" i],
   height: 3rem;
 }
 
-.stage-orb-current {
+.stage-orb-current,
+.stage-tile-current {
   outline: 6px solid rgb(45 179 106 / 0.28);
 }
 
-.stage-orb-locked {
+.stage-orb-locked,
+.stage-tile-locked {
   color: var(--color-muted);
   background: linear-gradient(180deg, #f4f7f5 0%, #e4ebe6 100%);
   box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.8), 0 6px 0 #d5dfd8;
+}
+
+.stage-tile-score {
+  @apply inline-flex items-center justify-center rounded-[1.1rem];
+  width: 4.85rem;
+  height: 1.95rem;
+  margin-top: -0.75rem;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f6f4 52%, #e4ece7 100%);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.95), 0 5px 0 #d7e0db, 0 8px 12px rgb(28 36 33 / 0.1);
 }
 
 .path-rail {

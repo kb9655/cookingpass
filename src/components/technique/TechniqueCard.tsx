@@ -34,23 +34,27 @@ export function TechniqueCard({
     sessionStorage.setItem(scoresKey(technique.id), signature);
   }, [technique.id, scores, signature]);
 
-  const orbClass = [
-    "stage-orb",
-    cleared ? "stage-orb-clear" : "",
-    current ? "stage-orb-current" : "",
-    locked ? "stage-orb-locked" : "",
+  const tileClass = [
+    "stage-tile",
+    cleared ? "stage-tile-clear" : "",
+    current ? "stage-tile-current" : "",
+    locked ? "stage-tile-locked" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <Link to={`/techniques/${technique.id}`} className="flex w-28 flex-col items-center gap-2">
-      <span className={orbClass}>
-        <TechniqueIcon slug={technique.slug} className="size-8" />
-        <span className="sr-only">{cleared ? t("techniquesCleared") : technique.name}</span>
+    <Link to={`/techniques/${technique.id}`} className="flex flex-col items-center gap-2">
+      <span className="relative flex flex-col items-center">
+        <span className={tileClass}>
+          <TechniqueIcon slug={technique.slug} className="size-8" />
+          <span className="sr-only">{cleared ? t("techniquesCleared") : technique.name}</span>
+        </span>
+        <span className="stage-tile-score">
+          <ScoreStars scores={scores} label={t("techniquesScoreLabel")} animate={animate} />
+        </span>
       </span>
       <h2 className="text-center text-sm font-black leading-snug">{technique.name}</h2>
-      <ScoreStars scores={scores} label={t("techniquesScoreLabel")} animate={animate} />
     </Link>
   );
 }

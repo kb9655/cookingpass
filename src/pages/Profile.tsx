@@ -40,7 +40,7 @@ export function Profile() {
     Promise.all([
       listTechniques(),
       getTechniqueProgress(user.id),
-      listCookingHistory(user.id),
+      listCookingHistory(user.id, locale),
     ])
       .then(([nextTechniques, nextProgress, nextHistory]) => {
         if (!active) return;
@@ -57,7 +57,7 @@ export function Profile() {
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [user, locale, t]);
 
   async function resetProgress() {
     if (!user) return;

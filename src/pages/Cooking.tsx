@@ -178,7 +178,6 @@ export function Cooking() {
               <div className="mt-3">
                 <CookingStep
                   step={step}
-                  recipeTitle={recipe.title}
                   techniqueName={step.technique_id ? techniqueNames[step.technique_id] : undefined}
                 />
               </div>

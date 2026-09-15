@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatAmount } from "../../lib/formatAmount";
+import { formatAmount, scaleAmount } from "../../lib/formatAmount";
 import { useLocale } from "../../i18n/locale";
 import {
   deleteUserIngredientByIngredientId,
@@ -34,10 +34,14 @@ function toChecks(ingredients: RecipeIngredient[], pantry: UserIngredient[]): In
 export function IngredientCheckList({
   ingredients,
   pantry,
+  servings,
+  baseServings,
   onChange,
 }: {
   ingredients: RecipeIngredient[];
   pantry: UserIngredient[];
+  servings: number;
+  baseServings: number;
   onChange: (items: IngredientCheck[]) => void;
 }) {
   const { t } = useLocale();
@@ -104,7 +108,11 @@ export function IngredientCheckList({
                 <p className="text-xs text-muted">
                   {t("recipeNeedAmount")}{" "}
                   {formatAmount(
-                    ingredients.find((row) => row.ingredient_id === item.ingredient_id)?.amount ?? 0,
+                    scaleAmount(
+                      ingredients.find((row) => row.ingredient_id === item.ingredient_id)?.amount ?? 0,
+                      servings,
+                      baseServings,
+                    ),
                   )}{" "}
                   {item.unit}
                 </p>

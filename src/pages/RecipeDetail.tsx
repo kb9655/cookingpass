@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { ErrorState, Skeleton } from "../components/common/Feedback";
 import { StarRating } from "../components/common/StarRating";
 import {
@@ -9,18 +10,45 @@ import {
 import { getRecipeDetail } from "../services/recipeService";
 import { listUserIngredients } from "../services/ingredientService";
 import { requestAdjustedRecipe } from "../services/aiService";
+import { formatAmount, scaleAmount } from "../lib/formatAmount";
 import { ApiError } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
-import type { RecipeDetail } from "../types/recipe";
-import type { UserIngredient } from "../types/ingredient";
+import type { RecipeDetail as RecipeDetailType } from "../types/recipe";
+import type { RecipeIngredient, UserIngredient } from "../types/ingredient";
+
+type Shortage = {
+  name: string;
+  need: number;
+  have: number;
+  unit: string;
+};
+
+function findShortages(
+  ingredients: RecipeIngredient[],
+  checks: IngredientCheck[],
+  servings: number,
+  baseServings: number,
+): Shortage[] {
+  return checks.flatMap((item) => {
+    if (!item.selected) return [];
+    const recipeItem = ingredients.find((row) => row.ingredient_id === item.ingredient_id);
+    if (!recipeItem) return [];
+    const unit = (recipeItem.unit || item.unit || "").toLowerCase();
+    if (unit === "to taste") return [];
+    const need = scaleAmount(recipeItem.amount ?? 0, servings, baseServings);
+    if (need <= 0) return [];
+    if (item.amount + 1e-6 >= need) return [];
+    return [{ name: item.name, need, have: item.amount, unit: item.unit }];
+  });
+}
 
 export function RecipeDetail() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { locale, t } = useLocale();
-  const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
+  const [recipe, setRecipe] = useState<RecipeDetailType | null>(null);
   const [pantry, setPantry] = useState<UserIngredient[]>([]);
   const [checks, setChecks] = useState<IngredientCheck[]>([]);
   const [servings, setServings] = useState(2);
@@ -28,6 +56,8 @@ export function RecipeDetail() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [adjusting, setAdjusting] = useState(false);
+  const [shortages, setShortages] = useState<Shortage[]>([]);
+  const [shortageOpen, setShortageOpen] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -54,8 +84,7 @@ export function RecipeDetail() {
     };
   }, [id, locale, t]);
 
-  async function onAdjust(event: FormEvent) {
-    event.preventDefault();
+  async function runAdjust() {
     if (!recipe) return;
     setAdjusting(true);
     setError("");
@@ -113,6 +142,18 @@ export function RecipeDetail() {
     }
   }
 
+  function onAdjust(event: FormEvent) {
+    event.preventDefault();
+    if (!recipe) return;
+    const missing = findShortages(recipe.ingredients, checks, servings, recipe.servings);
+    if (missing.length > 0) {
+      setShortages(missing);
+      setShortageOpen(true);
+      return;
+    }
+    void runAdjust();
+  }
+
   if (loading) {
     return (
       <main className="page space-y-4">
@@ -137,17 +178,34 @@ export function RecipeDetail() {
         {recipe.subcategory ? ` · ${recipe.subcategory}` : ""}
       </p>
       <h1 className="text-3xl font-semibold tracking-tight">{recipe.name}</h1>
-      <div className="mt-3 flex items-center gap-3 text-sm text-muted">
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
         <StarRating value={recipe.difficulty} />
         <span>{t("recipeMinutes", { n: recipe.estimated_minutes })}</span>
-        <span>{t("recipeServings", { n: recipe.servings })}</span>
+        <span>{t("recipeBaseServings", { n: recipe.servings })}</span>
       </div>
       <p className="mt-4 text-sm leading-relaxed text-muted">{recipe.description}</p>
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold">{t("recipeIngredients")}</h2>
+        <div className="field mt-3 max-w-[10rem]">
+          <label htmlFor="servings">{t("recipeServingsLabel")}</label>
+          <input
+            id="servings"
+            type="number"
+            min={1}
+            max={Math.max(12, recipe.servings)}
+            value={servings}
+            onChange={(event) => setServings(Number(event.target.value))}
+          />
+        </div>
         <div className="mt-3">
-          <IngredientCheckList ingredients={recipe.ingredients} pantry={pantry} onChange={setChecks} />
+          <IngredientCheckList
+            ingredients={recipe.ingredients}
+            pantry={pantry}
+            servings={servings}
+            baseServings={recipe.servings}
+            onChange={setChecks}
+          />
         </div>
       </section>
 
@@ -187,17 +245,6 @@ export function RecipeDetail() {
         <p className="text-sm text-muted">
           {t("recipePantryCount", { n: checks.filter((item) => item.selected).length })}
         </p>
-        <div className="field">
-          <label htmlFor="servings">{t("recipeServingsLabel")}</label>
-          <input
-            id="servings"
-            type="number"
-            min={1}
-            max={8}
-            value={servings}
-            onChange={(event) => setServings(Number(event.target.value))}
-          />
-        </div>
         <div className="field">
           <label htmlFor="notes">{t("recipeNotes")}</label>
           <p className="mb-2 text-xs text-muted">{t("recipeNoteChips")}</p>
@@ -257,6 +304,34 @@ export function RecipeDetail() {
           {adjusting ? t("recipeAdjustingBtn") : t("recipeAdjustSubmit")}
         </button>
       </form>
+
+      {shortageOpen ? (
+        <ConfirmDialog
+          title={t("recipeShortageTitle")}
+          confirmLabel={t("recipeShortageContinue")}
+          cancelLabel={t("recipeShortageCancel")}
+          busy={adjusting}
+          onConfirm={() => {
+            setShortageOpen(false);
+            void runAdjust();
+          }}
+          onClose={() => setShortageOpen(false)}
+        >
+          <p>{t("recipeShortageLead")}</p>
+          <ul className="mt-3 space-y-1">
+            {shortages.map((item) => (
+              <li key={item.name}>
+                {t("recipeShortageItem", {
+                  name: item.name,
+                  need: formatAmount(item.need),
+                  have: formatAmount(item.have),
+                  unit: item.unit,
+                })}
+              </li>
+            ))}
+          </ul>
+        </ConfirmDialog>
+      ) : null}
     </main>
   );
 }

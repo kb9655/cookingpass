@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useLocale } from "../../i18n/locale";
 
 type ConfirmDialogProps = {
   title: string;
+  children?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm?: () => void;
@@ -12,6 +14,7 @@ type ConfirmDialogProps = {
 
 export function ConfirmDialog({
   title,
+  children,
   confirmLabel,
   cancelLabel,
   onConfirm,
@@ -37,6 +40,7 @@ export function ConfirmDialog({
         <p id="confirm-dialog-title" className="text-base font-semibold">
           {title}
         </p>
+        {children ? <div className="mt-3 text-sm text-muted">{children}</div> : null}
         <div className="mt-5 flex flex-col gap-2">
           <button
             type="button"

@@ -488,9 +488,11 @@ export function TechniqueDetail() {
         <p className="text-xs text-muted">STEP {step.step_number}</p>
         {step.title ? <h2 className="mt-2 text-2xl font-semibold">{step.title}</h2> : null}
         <p className="mt-3 text-sm leading-relaxed text-muted">{step.instruction}</p>
-        <div className="mt-4">
-          <MediaSlot media={step.media} label={step.title ?? `${detail.name} ${step.step_number}`} />
-        </div>
+        {step.step_number === detail.steps.length && step.media ? (
+          <div className="mt-4">
+            <MediaSlot media={step.media} label={step.title ?? `${detail.name} ${step.step_number}`} />
+          </div>
+        ) : null}
         {detail.capture_hint ? (
           <p className="mt-4 rounded-2xl border border-line bg-card px-4 py-3 text-sm text-muted">
             {detail.capture_hint}

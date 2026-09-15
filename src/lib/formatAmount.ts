@@ -21,6 +21,13 @@ function matchFraction(value: number): string | null {
   return null;
 }
 
+export function scaleAmount(amount: number, servings: number, baseServings: number): number {
+  if (!Number.isFinite(amount)) return 0;
+  if (!Number.isFinite(baseServings) || baseServings <= 0) return amount;
+  if (!Number.isFinite(servings) || servings <= 0) return amount;
+  return (amount * servings) / baseServings;
+}
+
 export function formatAmount(value: number): string {
   if (!Number.isFinite(value)) return "0";
   const sign = value < 0 ? "-" : "";
