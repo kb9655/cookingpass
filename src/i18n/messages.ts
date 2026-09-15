@@ -178,6 +178,11 @@ export const messages = {
     cookLeave: "레시피로",
     cookSessionMissing: "조리 세션을 찾을 수 없습니다.",
     cookSaveError: "기록 저장에 실패했습니다.",
+    cookTimerLabel: "약 {n}분",
+    cookTimerStart: "시작",
+    cookTimerPause: "일시정지",
+    cookTimerReset: "다시",
+    cookTimerDone: "시간이 끝났습니다",
   },
   en: {
     navHome: "Home",
@@ -356,6 +361,11 @@ export const messages = {
     cookLeave: "Recipe",
     cookSessionMissing: "Cooking session not found.",
     cookSaveError: "Could not save the cooking record.",
+    cookTimerLabel: "About {n} min",
+    cookTimerStart: "Start",
+    cookTimerPause: "Pause",
+    cookTimerReset: "Reset",
+    cookTimerDone: "Time is up",
   },
 } as const;
 

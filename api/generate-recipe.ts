@@ -179,6 +179,7 @@ async function handlePost(req: Request) {
       ? "Write steps in clear English. Keep ingredient names explicit for originals and substitutes."
       : "단계는 한국어로 쉽게 쓰고, 재료 이름은 원문과 대체명을 명확히 남기세요.",
     "technique_id는 제공된 기술 id만 사용하고, 없으면 null로 두세요.",
+    "기다리는 행동(끓이기, 굽기, 재우기, 식히기, 삶기, 찌기, 오븐 등)만 time_minutes에 분을 넣고, 썰기·섞기처럼 바로 끝나는 단계는 null로 두세요.",
     "",
     `기존 레시피: ${recipe.name}`,
     `설명: ${recipe.description}`,
