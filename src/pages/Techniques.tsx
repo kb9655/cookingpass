@@ -58,7 +58,6 @@ export function Techniques() {
   }, [progress]);
 
   const currentId = techniques.find((item) => (statusById.get(item.id) ?? "unlocked") !== "cleared")?.id;
-  const pathAlign = ["justify-center", "justify-start pl-2", "justify-end pr-2", "justify-center"];
 
   return (
     <main className="page">
@@ -75,23 +74,19 @@ export function Techniques() {
       ) : loading ? (
         <PageLoader label={t("pageLoading")} />
       ) : (
-        <div className="relative mx-auto mt-10 max-w-sm">
-          <div className="path-rail absolute top-10 bottom-10 left-1/2 w-2 -translate-x-1/2 rounded-full" />
-          <div className="relative z-10 space-y-8">
-            {techniques.map((technique, index) => {
-              const status = statusById.get(technique.id) ?? "unlocked";
-              return (
-                <div key={technique.id} className={`flex ${pathAlign[index % pathAlign.length]}`}>
-                  <TechniqueCard
-                    technique={technique}
-                    status={status}
-                    current={technique.id === currentId}
-                    scores={scoresForTechnique(technique.id, childIdsByParent[technique.id] ?? [], progress)}
-                  />
-                </div>
-              );
-            })}
-          </div>
+        <div className="mt-8 grid grid-cols-3 gap-x-2 gap-y-8">
+          {techniques.map((technique) => {
+            const status = statusById.get(technique.id) ?? "unlocked";
+            return (
+              <TechniqueCard
+                key={technique.id}
+                technique={technique}
+                status={status}
+                current={technique.id === currentId}
+                scores={scoresForTechnique(technique.id, childIdsByParent[technique.id] ?? [], progress)}
+              />
+            );
+          })}
         </div>
       )}
     </main>

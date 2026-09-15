@@ -20,7 +20,7 @@ function errorResponse(message: string, status: number): Response {
 
 const generateRecipeRequestSchema = z.object({
   recipe_id: z.string().min(1),
-  servings: z.number().int().min(1).max(8),
+  servings: z.number().int().min(1).max(16),
   notes: z.string().max(500).optional().default(""),
   locale: z.enum(["en", "ko"]).optional().default("ko"),
   recipe: z.object({

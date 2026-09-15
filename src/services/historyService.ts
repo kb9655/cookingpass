@@ -1,7 +1,22 @@
+import type { Locale } from "../i18n/messages";
 import { requireSupabase } from "../lib/supabase";
 import type { AdjustedRecipe } from "../types/recipe";
 import type { RecipeIngredient } from "../types/ingredient";
 import type { CookingHistory } from "../types/user";
+
+type RecipeNameJoin = {
+  name?: string;
+  recipe_translations?: Array<{ locale: string; name: string }> | null;
+} | null;
+
+function pickHistoryName(recipe: RecipeNameJoin, locale: Locale): string {
+  const translations = recipe?.recipe_translations ?? [];
+  const localized =
+    translations.find((row) => row.locale === locale)?.name ??
+    translations.find((row) => row.locale === "en")?.name ??
+    recipe?.name;
+  return localized?.trim() || "레시피";
+}
 
 export async function saveCookingHistory(input: {
   userId: string;
@@ -25,10 +40,10 @@ export async function saveCookingHistory(input: {
   if (error) throw error;
 }
 
-export async function listCookingHistory(userId: string): Promise<CookingHistory[]> {
+export async function listCookingHistory(userId: string, locale: Locale = "ko"): Promise<CookingHistory[]> {
   const { data, error } = await requireSupabase()
     .from("cooking_history")
-    .select("id, recipe_id, cooked_at, completed, duration_seconds, recipes(name)")
+    .select("id, recipe_id, cooked_at, completed, duration_seconds, recipes(name, recipe_translations(locale, name))")
     .eq("user_id", userId)
     .order("cooked_at", { ascending: false })
     .limit(20);
@@ -40,7 +55,7 @@ export async function listCookingHistory(userId: string): Promise<CookingHistory
     return {
       id: row.id as string,
       recipe_id: row.recipe_id as string,
-      recipe_name: (recipe as { name?: string } | null)?.name ?? "레시피",
+      recipe_name: pickHistoryName(recipe as RecipeNameJoin, locale),
       cooked_at: row.cooked_at as string,
       completed: Boolean(row.completed),
       duration_seconds: (row.duration_seconds as number | null) ?? null,
