@@ -44,7 +44,7 @@ export function TechniqueCard({
     .join(" ");
 
   return (
-    <Link to={`/techniques/${technique.id}`} className="flex flex-col items-center gap-2">
+    <Link to={`/techniques/${technique.id}`} className="flex min-w-0 w-full flex-col items-center gap-2 px-0.5">
       <span className="relative flex flex-col items-center">
         <span className={tileClass}>
           <TechniqueIcon slug={technique.slug} className="size-8" />
@@ -54,7 +54,7 @@ export function TechniqueCard({
           <ScoreStars scores={scores} label={t("techniquesScoreLabel")} animate={animate} />
         </span>
       </span>
-      <h2 className="text-center text-sm font-black leading-snug">{technique.name}</h2>
+      <h2 className="w-full text-center text-xs font-black leading-snug break-keep sm:text-sm">{technique.name}</h2>
     </Link>
   );
 }

@@ -102,7 +102,7 @@ export function IngredientCheckList({
         {items
           .filter((item) => item.selected)
           .map((item) => (
-            <li key={`${item.ingredient_id}-amount`} className="grid grid-cols-[1fr_7rem] items-end gap-3">
+            <li key={`${item.ingredient_id}-amount`} className="grid grid-cols-[minmax(0,1fr)_6.5rem] items-end gap-2 min-[380px]:gap-3">
               <div>
                 <p className="text-sm font-medium">{item.name}</p>
                 <p className="text-xs text-muted">

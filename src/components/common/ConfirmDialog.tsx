@@ -24,7 +24,7 @@ export function ConfirmDialog({
   const { t } = useLocale();
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/40 px-4">
+    <div className="dialog-overlay">
       <button
         type="button"
         className="absolute inset-0 cursor-default"
@@ -35,7 +35,7 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="relative z-10 w-full max-w-lg rounded-[1.75rem] border border-line bg-card p-5 shadow-lg"
+        className="relative z-10 max-h-[min(85dvh,calc(100dvh-2rem))] w-full max-w-lg overflow-y-auto rounded-[1.75rem] border border-line bg-card p-5 shadow-lg"
       >
         <p id="confirm-dialog-title" className="text-base font-semibold">
           {title}

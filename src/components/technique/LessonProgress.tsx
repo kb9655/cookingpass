@@ -7,7 +7,7 @@ export function LessonProgress({
 }) {
   if (total <= 0) return null;
   return (
-    <ol className="flex items-center justify-center gap-2 pt-1" aria-label={`${current + 1} / ${total}`}>
+    <ol className="flex max-w-full flex-wrap items-center justify-center gap-2 px-2 pt-1" aria-label={`${current + 1} / ${total}`}>
       {Array.from({ length: total }, (_, index) => {
         const done = index < current;
         const active = index === current;

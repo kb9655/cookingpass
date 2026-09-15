@@ -148,9 +148,9 @@ export function Cooking() {
   const canNext = onIntro || viewIndex < total - 1;
 
   return (
-    <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-lg flex-col px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="page-lesson">
       {onIntro ? null : <LessonProgress total={total} current={viewIndex} />}
-      <div className="flex min-h-0 flex-1 items-stretch gap-1">
+      <div className="flex min-h-0 min-w-0 flex-1 items-stretch gap-1">
         <button
           type="button"
           className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-center text-ink disabled:text-line"
@@ -164,7 +164,7 @@ export function Cooking() {
           {onIntro ? (
             <div>
               <p className="text-xs font-medium text-muted">{t("cookIntro")}</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight">{recipe.title}</h1>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight break-keep">{recipe.title}</h1>
               <p className="mt-3 text-sm text-muted">{t("recipeServings", { n: recipe.servings })}</p>
               {recipe.notes ? <p className="mt-4 text-sm leading-relaxed text-muted">{recipe.notes}</p> : null}
               <Link to={`/recipes/${id}`} className="mt-6 inline-block text-sm font-medium text-accent">

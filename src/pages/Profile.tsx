@@ -121,8 +121,8 @@ export function Profile() {
                   progress.find((item) => item.technique_id === technique.id)?.status ?? "unlocked";
                 const cleared = status === "cleared";
                 return (
-                  <li key={technique.id} className="flex items-center justify-between">
-                    <span>{technique.name}</span>
+                  <li key={technique.id} className="flex min-w-0 items-center justify-between gap-3">
+                    <span className="min-w-0 break-keep">{technique.name}</span>
                     <span className={cleared ? "text-accent" : "text-muted"}>
                       {cleared ? t("profileCleared") : t("profileUnlearned")}
                     </span>
@@ -192,10 +192,10 @@ export function Profile() {
                   <li key={item.id}>
                     <Link
                       to={`/recipes/${item.recipe_id}`}
-                      className="card-casual flex items-center justify-between px-4 py-3 text-sm"
+                      className="card-casual flex min-w-0 items-start justify-between gap-3 px-4 py-3 text-sm"
                     >
-                      <span>{item.recipe_name}</span>
-                      <span className="text-muted">
+                      <span className="min-w-0 flex-1 break-keep">{item.recipe_name}</span>
+                      <span className="shrink-0 text-right text-muted">
                         {item.completed ? t("profileDone") : t("profileStopped")} ·{" "}
                         {new Date(item.cooked_at).toLocaleDateString(locale === "en" ? "en-US" : "ko-KR")}
                       </span>

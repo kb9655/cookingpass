@@ -74,7 +74,7 @@ export function Techniques() {
       ) : loading ? (
         <PageLoader label={t("pageLoading")} />
       ) : (
-        <div className="mt-8 grid grid-cols-3 gap-x-2 gap-y-8">
+        <div className="mt-8 grid grid-cols-3 gap-x-1 gap-y-8 min-[380px]:gap-x-2">
           {techniques.map((technique) => {
             const status = statusById.get(technique.id) ?? "unlocked";
             return (

@@ -177,7 +177,7 @@ export function RecipeDetail() {
         {recipe.category}
         {recipe.subcategory ? ` · ${recipe.subcategory}` : ""}
       </p>
-      <h1 className="text-3xl font-semibold tracking-tight">{recipe.name}</h1>
+      <h1 className="text-3xl font-semibold tracking-tight break-keep">{recipe.name}</h1>
       <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
         <StarRating value={recipe.difficulty} />
         <span>{t("recipeMinutes", { n: recipe.estimated_minutes })}</span>

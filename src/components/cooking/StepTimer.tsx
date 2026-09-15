@@ -66,14 +66,14 @@ export function StepTimer({ minutes }: { minutes: number }) {
         {formatClock(remainingMs)}
       </p>
       {done ? <p className="mt-2 text-center text-sm font-medium text-accent">{t("cookTimerDone")}</p> : null}
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <button type="button" className="btn-primary min-h-11 text-sm" onClick={start} disabled={running}>
+      <div className="mt-4 grid grid-cols-3 gap-1 min-[380px]:gap-2">
+        <button type="button" className="btn-primary min-h-11 min-w-0 px-2 text-xs min-[380px]:px-4 min-[380px]:text-sm" onClick={start} disabled={running}>
           {t("cookTimerStart")}
         </button>
-        <button type="button" className="btn-secondary min-h-11 text-sm" onClick={pause} disabled={!running}>
+        <button type="button" className="btn-secondary min-h-11 min-w-0 px-2 text-xs min-[380px]:px-4 min-[380px]:text-sm" onClick={pause} disabled={!running}>
           {t("cookTimerPause")}
         </button>
-        <button type="button" className="btn-secondary min-h-11 text-sm" onClick={reset}>
+        <button type="button" className="btn-secondary min-h-11 min-w-0 px-2 text-xs min-[380px]:px-4 min-[380px]:text-sm" onClick={reset}>
           {t("cookTimerReset")}
         </button>
       </div>

@@ -18,16 +18,25 @@
 
 html {
   font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
   background: var(--color-canvas);
   color: var(--color-ink);
-}
-
-#root {
-  min-height: 100dvh;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-x: none;
 }
 
 iframe[title*="Netlify" i],
@@ -43,8 +52,27 @@ a[href*="netlify.com"][id*="netlify" i],
 
 .page {
   @apply mx-auto w-full max-w-lg px-4 py-6;
+  min-width: 0;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+.page-notch {
   padding-top: max(1.5rem, env(safe-area-inset-top));
-  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+.page-lesson {
+  @apply mx-auto flex w-full max-w-lg min-w-0 flex-col px-4 pt-2;
+  min-height: calc(100dvh - 4rem - env(safe-area-inset-top, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.dialog-overlay {
+  @apply fixed inset-0 z-[100] flex items-end justify-center bg-ink/40 sm:items-center;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));
 }
@@ -211,6 +239,23 @@ a[href*="netlify.com"][id*="netlify" i],
 .star-pop {
   animation: star-pop 560ms cubic-bezier(0.22, 1.4, 0.36, 1) both;
   transform-origin: center;
+}
+
+@media (max-width: 380px) {
+  .stage-tile,
+  .stage-orb {
+    width: 4.15rem;
+    height: 4.15rem;
+  }
+
+  .stage-tile-score {
+    width: 4.25rem;
+  }
+
+  .stage-orb-nav {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

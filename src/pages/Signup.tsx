@@ -32,7 +32,7 @@ export function Signup() {
   }
 
   return (
-    <main className="page">
+    <main className="page page-notch">
       <LanguageToggle />
       <h1 className="mt-6 text-3xl font-semibold tracking-tight">{t("signupTitle")}</h1>
       <p className="mt-2 text-sm text-muted">{t("signupLead")}</p>

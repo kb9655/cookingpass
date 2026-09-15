@@ -15,12 +15,12 @@ export function RecipeCard({
   return (
     <Link to={`/recipes/${recipe.id}`}>
       <article
-        className={`card-casual p-4 ${highlight ? "border-accent" : ""}`}
+        className={`card-casual min-w-0 p-4 ${highlight ? "border-accent" : ""}`}
       >
         {highlight ? (
           <p className="mb-2 text-xs font-semibold text-accent">{t("recipesLinkedSkill")}</p>
         ) : null}
-        <h2 className="text-lg font-black">{recipe.name}</h2>
+        <h2 className="text-lg font-black break-keep">{recipe.name}</h2>
         <p className="mt-1 line-clamp-2 text-sm text-muted">{recipe.description}</p>
         <div className="mt-4 flex items-center justify-between text-xs text-muted">
           <StarRating value={recipe.difficulty} />

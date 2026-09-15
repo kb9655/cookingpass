@@ -404,7 +404,7 @@ export function TechniqueDetail() {
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("techniquesVariants")}</h2>
           <p className="mt-2 text-sm text-muted">{t("techniquesVariantsLead")}</p>
-          <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-4 grid grid-cols-3 gap-1 min-[380px]:gap-2">
             {detail.children.map((child, index) => {
               const childProgress = progress.find((item) => item.technique_id === child.id);
               return (
@@ -632,7 +632,7 @@ export function TechniqueDetail() {
 
         <h3 className="mt-8 text-lg font-semibold">{t("techniquesRecommend")}</h3>
         {unlearnedRelated.length > 0 ? (
-          <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-4 grid grid-cols-3 gap-1 min-[380px]:gap-2">
             {unlearnedRelated.map((item, index) => (
               <TechniqueCard
                 key={item.id}
@@ -652,9 +652,9 @@ export function TechniqueDetail() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-lg flex-col px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="page-lesson">
       {showDots ? <LessonProgress total={detail.steps.length} current={currentStep} /> : null}
-      <div className="flex min-h-0 flex-1 items-stretch gap-1">
+      <div className="flex min-h-0 min-w-0 flex-1 items-stretch gap-1">
         <button
           type="button"
           className="stage-orb stage-orb-nav shrink-0 self-center disabled:opacity-40"
