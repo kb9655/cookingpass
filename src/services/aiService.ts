@@ -99,3 +99,14 @@ export function clearCookingSession(recipeId?: string): void {
   }
   if (recipeId) sessionStorage.removeItem(legacyKey(recipeId));
 }
+
+export function startCookingFromSaved(sourceRecipeId: string, recipe: AdjustedRecipe): void {
+  saveCookingDraft({
+    recipeId: sourceRecipeId,
+    recipe,
+    startedAt: Date.now(),
+    progressIndex: 0,
+    viewIndex: 0,
+    onIntro: true,
+  });
+}

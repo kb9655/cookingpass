@@ -10,6 +10,8 @@ import { Recipes } from "./pages/Recipes";
 import { RecipeDetail } from "./pages/RecipeDetail";
 import { Cooking } from "./pages/Cooking";
 import { Profile } from "./pages/Profile";
+import { SavedRecipe } from "./pages/SavedRecipe";
+import { ShareImport } from "./pages/ShareImport";
 
 export default function App() {
   return (
@@ -28,6 +30,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/saved/:id"
+          element={
+            <ProtectedRoute>
+              <SavedRecipe />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/s/:code"
+          element={
+            <ProtectedRoute>
+              <ShareImport />
             </ProtectedRoute>
           }
         />

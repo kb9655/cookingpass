@@ -57,6 +57,17 @@ export type AdjustedRecipe = {
   steps: AdjustedStep[];
 };
 
+export type SavedUserRecipe = {
+  id: string;
+  ownerId: string;
+  sourceRecipeId: string;
+  title: string;
+  payload: AdjustedRecipe;
+  shareCode: string | null;
+  clonedFrom: string | null;
+  createdAt: string;
+};
+
 export type ScoredRecipe = Recipe & {
   score: number;
   skill_match: number;

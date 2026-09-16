@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { FormEvent, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { getTechniqueProgress, listTechniques, resetAllTechniqueProgress } from "../services/techniqueService";
 import { listCookingHistory, sumCompletedCookingStars } from "../services/historyService";
+import { importSharedRecipe, listUserRecipes } from "../services/userRecipeService";
 import { updateProfile } from "../services/profileService";
 import { listKnownTools } from "../services/recipeService";
 import { LanguageToggle } from "../components/common/LanguageToggle";
@@ -14,14 +15,32 @@ import { playerLevelFromClears } from "../lib/playerLevel";
 import { DEFAULT_TOOLS, mergeToolOptions } from "../lib/tools";
 import type { Technique, TechniqueProgress } from "../types/technique";
 import type { CookingHistory, ExperienceLevel } from "../types/user";
+import type { SavedUserRecipe } from "../types/recipe";
+
+function importMessage(err: unknown, fallback: string, own: string): string {
+  const message = err instanceof Error ? err.message : "";
+  if (message.includes("own recipe")) return own;
+  if (
+    message.includes("Invalid") ||
+    message.includes("not found") ||
+    message.includes("InvalidShareCode")
+  ) {
+    return fallback;
+  }
+  return message || fallback;
+}
 
 export function Profile() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { locale, t } = useLocale();
+  const navigate = useNavigate();
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [progress, setProgress] = useState<TechniqueProgress[]>([]);
   const [history, setHistory] = useState<CookingHistory[]>([]);
+  const [savedRecipes, setSavedRecipes] = useState<SavedUserRecipe[]>([]);
   const [cookingStars, setCookingStars] = useState(0);
+  const [importCode, setImportCode] = useState("");
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [resetOpen, setResetOpen] = useState(false);
@@ -43,14 +62,16 @@ export function Profile() {
       listTechniques(),
       getTechniqueProgress(user.id),
       listCookingHistory(user.id, locale),
+      listUserRecipes(user.id).catch(() => []),
       listKnownTools().catch(() => DEFAULT_TOOLS),
       sumCompletedCookingStars(user.id).catch(() => 0),
     ])
-      .then(([nextTechniques, nextProgress, nextHistory, nextTools, nextStars]) => {
+      .then(([nextTechniques, nextProgress, nextHistory, nextSaved, nextTools, nextStars]) => {
         if (!active) return;
         setTechniques(nextTechniques);
         setProgress(nextProgress);
         setHistory(nextHistory);
+        setSavedRecipes(nextSaved);
         setKnownTools(nextTools);
         setCookingStars(nextStars);
       })
@@ -84,6 +105,22 @@ export function Profile() {
   const cleared = progress.filter((item) => item.status === "cleared").length;
   const player = playerLevelFromClears(cleared, cookingStars);
   const toolOptions = mergeToolOptions(DEFAULT_TOOLS, knownTools, tools);
+
+  async function onImport(event: FormEvent) {
+    event.preventDefault();
+    if (!user) return;
+    setError("");
+    setImporting(true);
+    try {
+      const id = await importSharedRecipe(importCode);
+      setImportCode("");
+      navigate(`/saved/${id}`);
+    } catch (err) {
+      setError(importMessage(err, t("savedRecipeImportError"), t("savedRecipeImportOwn")));
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function savePrefs() {
     if (!user) return;
@@ -187,6 +224,51 @@ export function Profile() {
             <button type="button" className="btn-secondary mt-4" onClick={savePrefs}>
               {t("profileSave")}
             </button>
+          </section>
+
+          <section className="mt-6">
+            <h2 className="text-lg font-black">{t("profileSavedRecipes")}</h2>
+            <form className="mt-3 flex min-w-0 gap-2" onSubmit={(event) => void onImport(event)}>
+              <div className="field min-w-0 flex-1">
+                <label htmlFor="share-code" className="sr-only">
+                  {t("profileImportCode")}
+                </label>
+                <input
+                  id="share-code"
+                  value={importCode}
+                  onChange={(event) => setImportCode(event.target.value)}
+                  placeholder={t("profileImportPlaceholder")}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+              </div>
+              <button className="btn-secondary min-h-12 shrink-0 self-end" type="submit" disabled={importing || !importCode.trim()}>
+                {importing ? t("profileImporting") : t("profileImport")}
+              </button>
+            </form>
+            {savedRecipes.length === 0 ? (
+              <div className="mt-3">
+                <EmptyState title={t("profileNoSavedTitle")} body={t("profileNoSavedBody")} />
+              </div>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {savedRecipes.map((item) => (
+                  <li key={item.id}>
+                    <Link
+                      to={`/saved/${item.id}`}
+                      className="card-casual flex min-w-0 items-start justify-between gap-3 px-4 py-3 text-sm"
+                    >
+                      <span className="min-w-0 flex-1 break-keep">{item.title}</span>
+                      <span className="shrink-0 text-right text-muted">
+                        {item.shareCode ? `${t("profileShared")} · ` : ""}
+                        {new Date(item.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "ko-KR")}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <section className="mt-6">

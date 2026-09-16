@@ -17,9 +17,11 @@ import {
 } from "../services/aiService";
 import {
   saveCookingHistory,
+  setPendingCookingSaveRecipe,
   stashPendingCookingSave,
   sumCompletedCookingStars,
 } from "../services/historyService";
+import { saveUserRecipe } from "../services/userRecipeService";
 import { getRecipeDetail } from "../services/recipeService";
 import { getTechniqueProgress } from "../services/techniqueService";
 import type { AdjustedRecipe } from "../types/recipe";
@@ -45,6 +47,9 @@ export function Cooking() {
   const [toPercent, setToPercent] = useState(0);
   const [barReady, setBarReady] = useState(false);
   const [ready, setReady] = useState(false);
+  const [saveRecipe, setSaveRecipe] = useState(false);
+  const [librarySaved, setLibrarySaved] = useState(false);
+  const [savingRecipe, setSavingRecipe] = useState(false);
   const finishedRef = useRef(false);
   const draftRef = useRef<CookingDraft | null>(null);
 
@@ -52,6 +57,8 @@ export function Cooking() {
     setReady(false);
     setOnSummary(false);
     setBarReady(false);
+    setSaveRecipe(false);
+    setLibrarySaved(false);
     const session = loadCookingSession(id);
     if (!session) {
       navigate(`/recipes/${id}`, { replace: true });
@@ -186,6 +193,7 @@ export function Cooking() {
           adjustedRecipe: recipe,
           durationSeconds,
           techniqueIds: usedTechniqueIds,
+          saveRecipe: false,
         });
       }
       finishedRef.current = true;
@@ -195,6 +203,35 @@ export function Cooking() {
       setError(err instanceof Error ? err.message : t("cookSaveError"));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function toggleSaveRecipe(checked: boolean) {
+    setError("");
+    if (!checked) {
+      setSaveRecipe(false);
+      if (!user) setPendingCookingSaveRecipe(false);
+      return;
+    }
+    setSaveRecipe(true);
+    if (!user) {
+      setPendingCookingSaveRecipe(true);
+      return;
+    }
+    if (librarySaved || !recipe) return;
+    setSavingRecipe(true);
+    try {
+      await saveUserRecipe({
+        userId: user.id,
+        sourceRecipeId: id,
+        recipe,
+      });
+      setLibrarySaved(true);
+    } catch (err) {
+      setSaveRecipe(false);
+      setError(err instanceof Error ? err.message : t("cookSummarySaveError"));
+    } finally {
+      setSavingRecipe(false);
     }
   }
 
@@ -213,6 +250,21 @@ export function Cooking() {
         <h1 className="mt-2 text-3xl font-semibold tracking-tight break-keep">{recipe.title}</h1>
         <p className="mt-4 text-2xl font-black text-accent">{t("cookSummaryXp", { n: gainedXp })}</p>
         {barReady ? <ProgressBar value={toPercent} /> : <ProgressBar value={fromPercent} />}
+        <label className="mt-6 flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={saveRecipe}
+            disabled={savingRecipe || librarySaved}
+            onChange={(event) => void toggleSaveRecipe(event.target.checked)}
+          />
+          <span className="min-w-0 break-keep">
+            {librarySaved ? t("cookSummarySaved") : t("cookSummarySaveRecipe")}
+            {user ? null : (
+              <span className="mt-1 block text-muted">{t("cookSummarySaveNeedLogin")}</span>
+            )}
+          </span>
+        </label>
         {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
         <button className="btn-primary mt-8 w-full" type="button" onClick={() => navigate("/")}>
           {t("cookSummaryHome")}

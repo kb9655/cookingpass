@@ -3,6 +3,7 @@ import { requireSupabase } from "../lib/supabase";
 import type { AdjustedRecipe } from "../types/recipe";
 import type { RecipeIngredient } from "../types/ingredient";
 import type { CookingHistory } from "../types/user";
+import { saveUserRecipe } from "./userRecipeService";
 
 type RecipeNameJoin = {
   name?: string;
@@ -25,6 +26,7 @@ export type PendingCookingSave = {
   adjustedRecipe: AdjustedRecipe;
   durationSeconds: number;
   techniqueIds: string[];
+  saveRecipe?: boolean;
 };
 
 const PENDING_KEY = "cookingpass:pending-cook-save";
@@ -47,6 +49,12 @@ export function loadPendingCookingSave(): PendingCookingSave | null {
 
 export function clearPendingCookingSave(): void {
   sessionStorage.removeItem(PENDING_KEY);
+}
+
+export function setPendingCookingSaveRecipe(saveRecipe: boolean): void {
+  const pending = loadPendingCookingSave();
+  if (!pending) return;
+  stashPendingCookingSave({ ...pending, saveRecipe });
 }
 
 export async function saveCookingHistory(input: {
@@ -74,6 +82,13 @@ export async function saveCookingHistory(input: {
 export async function flushPendingCookingSave(userId: string): Promise<void> {
   const pending = loadPendingCookingSave();
   if (!pending) return;
+  if (pending.saveRecipe) {
+    await saveUserRecipe({
+      userId,
+      sourceRecipeId: pending.recipeId,
+      recipe: pending.adjustedRecipe,
+    });
+  }
   await saveCookingHistory({
     userId,
     recipeId: pending.recipeId,
