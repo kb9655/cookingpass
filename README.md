@@ -16,27 +16,6 @@ npm run dev
 
 Claude 레시피 조정과 긴급도움 챗봇은 `.env` 또는 Vercel 환경 변수의 `ANTHROPIC_API_KEY`가 필요합니다.
 
-## Google 로그인 설정
-
-소셜 로그인 세션과 사용자 데이터는 기존 Supabase Auth를 사용하고, 앱과 인증 복귀 화면은 Vercel에서 제공합니다.
-
-1. Supabase Dashboard의 **Authentication → Providers**에서 Google을 활성화하고 Google Cloud에서 발급한 Client ID/Secret을 입력합니다.
-2. Google Cloud의 Authorized redirect URI에는 Supabase Dashboard에 표시되는 아래 callback을 등록합니다.
-
-```text
-https://<SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback
-```
-
-3. Supabase **Authentication → URL Configuration**의 Site URL은 실제 Vercel 운영 도메인으로 지정하고 Redirect Allow List에 다음을 추가합니다.
-
-```text
-http://localhost:5173/auth/callback
-https://<PRODUCTION_DOMAIN>/auth/callback
-https://*-<VERCEL_TEAM_SLUG>.vercel.app/**
-```
-
-4. Vercel Project Environment Variables에는 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`를 설정합니다. Supabase service-role key와 Google secret은 `VITE_` 변수나 저장소에 넣지 않습니다.
-
 ## 긴급도움 챗봇 설정
 
 `/api/chat`은 Supabase access token이 있는 사용자만 호출할 수 있으며, 대화는 DB에 저장하지 않습니다. Anthropic API의 Claude를 직접 호출해 응답을 스트리밍합니다.
@@ -50,7 +29,7 @@ ANTHROPIC_CHAT_MODEL=claude-haiku-4-5
 
 `ANTHROPIC_CHAT_MODEL`은 선택 사항이며 기본값은 `claude-haiku-4-5`입니다. 프로그래밍, 역할극 등 조리와 관계없는 요청은 서버에서 차단하고 Claude에도 조리 문제 해결 전용 지침을 적용합니다.
 
-운영 자격 증명 없이도 UI와 빌드는 확인할 수 있지만, Google 실제 로그인과 챗 응답 검증에는 위 Dashboard 설정이 필요합니다.
+운영 자격 증명 없이도 UI와 빌드는 확인할 수 있지만, 실제 챗 응답 검증에는 Supabase와 Anthropic 환경 변수 설정이 필요합니다.
 
 데모 CSV를 다시 뽑으려면:
 

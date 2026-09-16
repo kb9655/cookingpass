@@ -1,7 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/common/AppShell";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
-import { AuthCallback } from "./pages/AuthCallback";
 import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
@@ -20,7 +19,6 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/" element={<Home />} />
         <Route path="/techniques" element={<Techniques />} />
         <Route path="/techniques/:id" element={<TechniqueDetail />} />

@@ -19,9 +19,7 @@ export function AppShell() {
   const [cleared, setCleared] = useState(0);
   const [cookingStars, setCookingStars] = useState(0);
   const isAuthPage =
-    location.pathname.startsWith("/login") ||
-    location.pathname.startsWith("/signup") ||
-    location.pathname.startsWith("/auth/callback");
+    location.pathname.startsWith("/login") || location.pathname.startsWith("/signup");
   const isLessonPage =
     location.pathname.startsWith("/cook/") || /^\/techniques\/[^/]+/.test(location.pathname);
   const hideTabs = isAuthPage || isLessonPage;
