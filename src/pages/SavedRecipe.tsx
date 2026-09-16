@@ -14,6 +14,15 @@ import {
 } from "../services/userRecipeService";
 import type { SavedUserRecipe } from "../types/recipe";
 
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message.trim()) return err.message;
+  if (err && typeof err === "object" && "message" in err) {
+    const message = (err as { message: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return fallback;
+}
+
 export function SavedRecipe() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
@@ -59,7 +68,7 @@ export function SavedRecipe() {
       setShareCode(code);
       setRecipe({ ...recipe, shareCode: code });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("savedRecipeLoadError"));
+      setError(errorMessage(err, t("savedRecipeShareError")));
     } finally {
       setSharing(false);
     }

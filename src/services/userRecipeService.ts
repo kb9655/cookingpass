@@ -99,7 +99,7 @@ export async function deleteUserRecipe(userId: string, id: string): Promise<void
 
 export async function ensureShareCode(id: string): Promise<string> {
   const { data, error } = await requireSupabase().rpc("ensure_share_code", { p_id: id });
-  if (error) throw error;
+  if (error) throw new Error(error.message || "Could not create a share code.");
   if (typeof data !== "string" || !data) throw new Error("Could not create a share code.");
   return data;
 }
