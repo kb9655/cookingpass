@@ -5,11 +5,11 @@ import {
   ChefHat,
   CookingPot,
   Droplets,
-  Flame,
   FlaskConical,
   Grid2x2,
   Layers,
   Salad,
+  Soup,
   Utensils,
 } from "lucide-react";
 
@@ -18,8 +18,8 @@ const ICONS_BY_SLUG: Record<string, LucideIcon> = {
   "peel-fruit": Apple,
   julienne: Carrot,
   mince: Grid2x2,
-  slice: Layers,
-  "preheat-pan": Flame,
+  "nabak-cut": Layers,
+  parboil: Soup,
   "stir-fry": CookingPot,
   boil: Droplets,
   "season-toss": Salad,

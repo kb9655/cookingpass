@@ -72,7 +72,7 @@ const TECHNIQUES = [
   { id: "a1111111-1111-4111-8111-111111111103", keywords: ["julienne", "thin strip", "shred"] },
   { id: "a1111111-1111-4111-8111-111111111104", keywords: ["mince", "minced", "finely chop"] },
   { id: "a1111111-1111-4111-8111-111111111105", keywords: ["slice", "sliced", "cut into"] },
-  { id: "a1111111-1111-4111-8111-111111111106", keywords: ["preheat", "heat a skillet", "heat a pan", "hot pan"] },
+  { id: "a1111111-1111-4111-8111-111111111106", keywords: ["parboil", "blanch", "hard-boiled", "boil until", "boiling water"] },
   { id: "a1111111-1111-4111-8111-111111111107", keywords: ["stir-fry", "stir fry", "saute", "sauté", "fry"] },
 ];
 
