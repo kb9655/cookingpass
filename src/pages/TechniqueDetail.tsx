@@ -8,6 +8,7 @@ import { StarRating } from "../components/common/StarRating";
 import { LessonProgress } from "../components/technique/LessonProgress";
 import { ScoreStars } from "../components/technique/ScoreStars";
 import { TechniqueCard } from "../components/technique/TechniqueCard";
+import { getTechniqueGuideImage } from "../data/techniqueGuideImages";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
 import { ApiError, evaluateTechnique } from "../lib/api";
@@ -31,6 +32,7 @@ import type {
 type WizardScreen =
   | { type: "intro" }
   | { type: "caution" }
+  | { type: "guide" }
   | { type: "practice"; stepIndex: number }
   | { type: "feedback"; stepIndex: number }
   | { type: "summary" };
@@ -38,14 +40,27 @@ type WizardScreen =
 type StepEvalStatus = "scored" | "skipped" | "invalid";
 type EvalPopup = "no-photo" | "bad-photo" | null;
 
-function buildScreens(stepCount: number): WizardScreen[] {
+function buildScreens(stepCount: number, hasGuide: boolean): WizardScreen[] {
   const screens: WizardScreen[] = [{ type: "intro" }, { type: "caution" }];
+  if (hasGuide) screens.push({ type: "guide" });
   for (let index = 0; index < stepCount; index += 1) {
     screens.push({ type: "practice", stepIndex: index });
     screens.push({ type: "feedback", stepIndex: index });
   }
   screens.push({ type: "summary" });
   return screens;
+}
+
+function GuideImage({ src, alt }: { src: string; alt: string }) {
+  return (
+    <figure className="mx-auto w-full max-w-2xl overflow-hidden rounded-[1.25rem] border border-line bg-white p-2">
+      <img
+        src={src}
+        alt={alt}
+        className="mx-auto block max-h-[65vh] h-auto max-w-full object-contain"
+      />
+    </figure>
+  );
 }
 
 function aggregateScores(results: TechniqueEvaluation[]): number[] {
@@ -137,7 +152,11 @@ export function TechniqueDetail() {
     };
   }, [previews]);
 
-  const screens = useMemo(() => buildScreens(detail?.steps.length ?? 0), [detail?.steps.length]);
+  const guideImage = getTechniqueGuideImage(detail?.slug ?? "");
+  const screens = useMemo(
+    () => buildScreens(detail?.steps.length ?? 0, Boolean(guideImage)),
+    [detail?.steps.length, guideImage],
+  );
   const screen = screens[Math.min(screenIndex, screens.length - 1)] ?? { type: "intro" as const };
 
   function onPickPhoto(stepId: string, file: File | null) {
@@ -401,6 +420,15 @@ export function TechniqueDetail() {
         </p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight">{detail.name}</h1>
         <p className="mt-4 text-sm leading-relaxed text-muted">{detail.description}</p>
+        {guideImage ? (
+          <section className="mt-6">
+            <h2 className="text-lg font-semibold">{t("techniquesGuideTitle")}</h2>
+            <p className="mt-2 text-sm text-muted">{t("techniquesGuideLead")}</p>
+            <div className="mt-4">
+              <GuideImage src={guideImage.src} alt={guideImage.alt} />
+            </div>
+          </section>
+        ) : null}
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("techniquesVariants")}</h2>
           <p className="mt-2 text-sm text-muted">{t("techniquesVariantsLead")}</p>
@@ -481,6 +509,17 @@ export function TechniqueDetail() {
           ))}
         </ul>
       </div>
+    );
+  } else if (screen.type === "guide" && guideImage) {
+    body = (
+      <section>
+        <p className="text-xs font-medium text-muted">{t("techniquesExplainStep")}</p>
+        <h2 className="mt-2 text-2xl font-semibold">{t("techniquesGuideTitle")}</h2>
+        <p className="mt-3 text-sm leading-relaxed text-muted">{t("techniquesGuideLead")}</p>
+        <div className="mt-5">
+          <GuideImage src={guideImage.src} alt={guideImage.alt} />
+        </div>
+      </section>
     );
   } else if (screen.type === "practice" && step) {
     body = (
