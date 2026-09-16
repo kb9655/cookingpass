@@ -5,6 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useLocale } from "../../i18n/locale";
 import { playerLevelFromClears } from "../../lib/playerLevel";
 import { isSupabaseConfigured } from "../../lib/supabase";
+import { flushPendingCookingSave, sumCompletedCookingStars } from "../../services/historyService";
 import { getTechniqueProgress } from "../../services/techniqueService";
 import { RecommendPrompt } from "./RecommendPrompt";
 
@@ -13,25 +14,42 @@ export function AppShell() {
   const { configured, user } = useAuth();
   const { t } = useLocale();
   const [cleared, setCleared] = useState(0);
+  const [cookingStars, setCookingStars] = useState(0);
   const isAuthPage = location.pathname.startsWith("/login") || location.pathname.startsWith("/signup");
   const isLessonPage =
     location.pathname.startsWith("/cook/") || /^\/techniques\/[^/]+/.test(location.pathname);
   const hideTabs = isAuthPage || isLessonPage;
-  const player = playerLevelFromClears(cleared);
+  const player = playerLevelFromClears(cleared, cookingStars);
 
   useEffect(() => {
     if (!user || !isSupabaseConfigured) {
       setCleared(0);
+      setCookingStars(0);
       return;
     }
     let active = true;
-    getTechniqueProgress(user.id)
-      .then((rows) => {
-        if (active) setCleared(rows.filter((row) => row.status === "cleared").length);
-      })
-      .catch(() => {
-        if (active) setCleared(0);
-      });
+    void (async () => {
+      try {
+        await flushPendingCookingSave(user.id);
+      } catch {
+        // Pending cook save is retried on the next signed-in visit.
+      }
+      if (!active) return;
+      try {
+        const [rows, stars] = await Promise.all([
+          getTechniqueProgress(user.id),
+          sumCompletedCookingStars(user.id),
+        ]);
+        if (!active) return;
+        setCleared(rows.filter((row) => row.status === "cleared").length);
+        setCookingStars(stars);
+      } catch {
+        if (active) {
+          setCleared(0);
+          setCookingStars(0);
+        }
+      }
+    })();
     return () => {
       active = false;
     };

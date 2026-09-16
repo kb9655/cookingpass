@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { getTechniqueProgress, listTechniques, resetAllTechniqueProgress } from "../services/techniqueService";
-import { listCookingHistory } from "../services/historyService";
+import { listCookingHistory, sumCompletedCookingStars } from "../services/historyService";
 import { updateProfile } from "../services/profileService";
 import { listKnownTools } from "../services/recipeService";
 import { LanguageToggle } from "../components/common/LanguageToggle";
@@ -21,6 +21,7 @@ export function Profile() {
   const [techniques, setTechniques] = useState<Technique[]>([]);
   const [progress, setProgress] = useState<TechniqueProgress[]>([]);
   const [history, setHistory] = useState<CookingHistory[]>([]);
+  const [cookingStars, setCookingStars] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [resetOpen, setResetOpen] = useState(false);
@@ -43,13 +44,15 @@ export function Profile() {
       getTechniqueProgress(user.id),
       listCookingHistory(user.id, locale),
       listKnownTools().catch(() => DEFAULT_TOOLS),
+      sumCompletedCookingStars(user.id).catch(() => 0),
     ])
-      .then(([nextTechniques, nextProgress, nextHistory, nextTools]) => {
+      .then(([nextTechniques, nextProgress, nextHistory, nextTools, nextStars]) => {
         if (!active) return;
         setTechniques(nextTechniques);
         setProgress(nextProgress);
         setHistory(nextHistory);
         setKnownTools(nextTools);
+        setCookingStars(nextStars);
       })
       .catch((err: unknown) => {
         if (active) setError(err instanceof Error ? err.message : t("profileLoadError"));
@@ -79,7 +82,7 @@ export function Profile() {
   }
 
   const cleared = progress.filter((item) => item.status === "cleared").length;
-  const player = playerLevelFromClears(cleared);
+  const player = playerLevelFromClears(cleared, cookingStars);
   const toolOptions = mergeToolOptions(DEFAULT_TOOLS, knownTools, tools);
 
   async function savePrefs() {
@@ -112,13 +115,15 @@ export function Profile() {
               {t("profileXp", { current: player.xpInLevel, next: player.xpToNext })}
             </p>
             <ProgressBar value={player.barPercent} />
-            <button
-              type="button"
-              className="btn-secondary mt-4 w-full"
-              onClick={() => setResetOpen(true)}
-            >
-              {t("profileResetProgress")}
-            </button>
+            {import.meta.env.DEV ? (
+              <button
+                type="button"
+                className="btn-secondary mt-4 w-full"
+                onClick={() => setResetOpen(true)}
+              >
+                {t("profileResetProgress")}
+              </button>
+            ) : null}
             <ul className="mt-4 space-y-2 text-sm">
               {techniques.map((technique) => {
                 const status =
@@ -221,7 +226,7 @@ export function Profile() {
       <button type="button" className="btn-secondary mt-8 w-full" onClick={() => void signOut()}>
         {t("profileLogout")}
       </button>
-      {resetOpen ? (
+      {resetOpen && import.meta.env.DEV ? (
         <ConfirmDialog
           title={t("profileResetConfirm")}
           confirmLabel={resetting ? t("profileResetting") : t("profileResetProgress")}

@@ -302,7 +302,7 @@ async function handlePost(req: Request) {
     "4) missing_tools에 있는 도구 없이 비슷한 결과가 나오도록 단계와 도구를 바꾸세요. 예: 오븐 없이 팬이나 에어프라이어.",
     locale === "en"
       ? "Write steps in clear English. Keep ingredient names explicit for originals and substitutes."
-      : "단계는 한국어로 쉽게 쓰고, 재료 이름은 원문과 대체명을 명확히 남기세요.",
+      : "단계는 한국어로 쉽게 쓰고, 재료 이름은 원문과 대체명을 명확히 남기세요. 단위는 한국어로 쓰세요. count는 개, cup은 컵, tablespoon은 큰술, teaspoon은 작은술입니다. 마땅한 한글이 없으면 음차로 쓰세요.",
     "technique_id는 제공된 기술 id만 사용하고, 없으면 null로 두세요.",
     "기다리는 행동(끓이기, 굽기, 재우기, 식히기, 삶기, 찌기, 오븐 등)만 time_minutes에 분을 넣고, 썰기·섞기처럼 바로 끝나는 단계는 null로 두세요.",
     "",

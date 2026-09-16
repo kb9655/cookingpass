@@ -203,6 +203,10 @@ export const messages = {
     cookTimerPause: "일시정지",
     cookTimerReset: "다시",
     cookTimerDone: "시간이 끝났습니다",
+    cookSummaryTitle: "조리 완료",
+    cookSummaryXp: "+{n} XP",
+    cookSummaryHome: "홈으로",
+    cookSummaryLogin: "기록 저장하려면 로그인",
   },
   en: {
     navHome: "Home",
@@ -406,6 +410,10 @@ export const messages = {
     cookTimerPause: "Pause",
     cookTimerReset: "Reset",
     cookTimerDone: "Time is up",
+    cookSummaryTitle: "Cooking complete",
+    cookSummaryXp: "+{n} XP",
+    cookSummaryHome: "Home",
+    cookSummaryLogin: "Log in to save this cook",
   },
 } as const;
 

@@ -14,6 +14,7 @@ import { requestAdjustedRecipe } from "../services/aiService";
 import { listNotePresets, upsertNotePreset } from "../services/notePresetService";
 import { updateProfile } from "../services/profileService";
 import { formatAmount, scaleAmount } from "../lib/formatAmount";
+import { formatUnit } from "../lib/formatUnit";
 import { ApiError, suggestSubstitutes } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
@@ -363,11 +364,7 @@ export function RecipeDetail() {
 
   function startCooking() {
     if (!recipe || !adjusted) return;
-    if (user) {
-      navigate(`/cook/${recipe.id}`);
-    } else {
-      navigate("/login", { state: { from: `/cook/${recipe.id}` } });
-    }
+    navigate(`/cook/${recipe.id}`);
   }
 
   const stepTitleKey: Record<WizardStep, MessageKey> = {
@@ -644,7 +641,7 @@ export function RecipeDetail() {
                   <ul className="mt-2 space-y-1 text-sm text-muted">
                     {adjusted.ingredients.map((item) => (
                       <li key={`${item.name}-${item.substituted_for ?? ""}`}>
-                        {item.name} · {formatAmount(item.amount)} {item.unit}
+                        {item.name} · {formatAmount(item.amount)} {formatUnit(item.unit, locale)}
                         {item.substituted_for
                           ? ` (${t("recipeSubstitute")}: ${item.substituted_for})`
                           : null}
@@ -719,7 +716,7 @@ export function RecipeDetail() {
                   name: item.name,
                   need: formatAmount(item.need),
                   have: formatAmount(item.have),
-                  unit: item.unit,
+                  unit: formatUnit(item.unit, locale),
                 })}
               </li>
             ))}

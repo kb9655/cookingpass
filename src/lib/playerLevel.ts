@@ -1,4 +1,5 @@
 export const XP_PER_CLEAR = 100;
+export const XP_PER_STAR = 10;
 export const XP_PER_LEVEL = 200;
 
 export type PlayerLevel = {
@@ -9,16 +10,26 @@ export type PlayerLevel = {
   barPercent: number;
 };
 
-export function playerLevelFromClears(cleared: number): PlayerLevel {
-  const safeCleared = Math.max(0, Math.floor(cleared));
-  const totalXp = safeCleared * XP_PER_CLEAR;
-  const level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
-  const xpInLevel = totalXp % XP_PER_LEVEL;
+export function cookingXpFromDifficulty(difficulty: number): number {
+  const stars = Math.max(1, Math.round(Number.isFinite(difficulty) ? difficulty : 1));
+  return stars * XP_PER_STAR;
+}
+
+export function playerLevelFromXp(totalXp: number): PlayerLevel {
+  const safe = Math.max(0, Math.floor(totalXp));
+  const level = Math.floor(safe / XP_PER_LEVEL) + 1;
+  const xpInLevel = safe % XP_PER_LEVEL;
   return {
     level,
-    totalXp,
+    totalXp: safe,
     xpInLevel,
     xpToNext: XP_PER_LEVEL,
     barPercent: Math.round((xpInLevel / XP_PER_LEVEL) * 100),
   };
+}
+
+export function playerLevelFromClears(cleared: number, cookingStars = 0): PlayerLevel {
+  const safeCleared = Math.max(0, Math.floor(cleared));
+  const safeStars = Math.max(0, Math.floor(cookingStars));
+  return playerLevelFromXp(safeCleared * XP_PER_CLEAR + safeStars * XP_PER_STAR);
 }

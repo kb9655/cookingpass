@@ -2,18 +2,26 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ErrorState } from "../components/common/Feedback";
+import { ProgressBar } from "../components/common/ProgressBar";
 import { CookingStep } from "../components/cooking/CookingStep";
 import { LessonProgress } from "../components/technique/LessonProgress";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
+import { XP_PER_CLEAR, XP_PER_STAR, cookingXpFromDifficulty, playerLevelFromXp } from "../lib/playerLevel";
+import { isSupabaseConfigured } from "../lib/supabase";
 import {
   clearCookingSession,
   loadCookingSession,
   saveCookingDraft,
   type CookingDraft,
 } from "../services/aiService";
-import { saveCookingHistory } from "../services/historyService";
+import {
+  saveCookingHistory,
+  stashPendingCookingSave,
+  sumCompletedCookingStars,
+} from "../services/historyService";
 import { getRecipeDetail } from "../services/recipeService";
+import { getTechniqueProgress } from "../services/techniqueService";
 import type { AdjustedRecipe } from "../types/recipe";
 
 export function Cooking() {
@@ -26,15 +34,24 @@ export function Cooking() {
   const [viewIndex, setViewIndex] = useState(0);
   const [progressIndex, setProgressIndex] = useState(0);
   const [onIntro, setOnIntro] = useState(true);
+  const [onSummary, setOnSummary] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [techniqueNames, setTechniqueNames] = useState<Record<string, string>>({});
+  const [difficulty, setDifficulty] = useState(1);
+  const [baseXp, setBaseXp] = useState(0);
+  const [gainedXp, setGainedXp] = useState(0);
+  const [fromPercent, setFromPercent] = useState(0);
+  const [toPercent, setToPercent] = useState(0);
+  const [barReady, setBarReady] = useState(false);
   const [ready, setReady] = useState(false);
   const finishedRef = useRef(false);
   const draftRef = useRef<CookingDraft | null>(null);
 
   useEffect(() => {
     setReady(false);
+    setOnSummary(false);
+    setBarReady(false);
     const session = loadCookingSession(id);
     if (!session) {
       navigate(`/recipes/${id}`, { replace: true });
@@ -45,7 +62,7 @@ export function Cooking() {
     setStartedAt(session.startedAt);
     setProgressIndex(Math.min(session.progressIndex, last));
     setViewIndex(Math.min(session.viewIndex, last));
-    setOnIntro(session.progressIndex === 0 && session.viewIndex === 0);
+    setOnIntro(session.onIntro);
     setReady(true);
 
     void getRecipeDetail(id).then((detail) => {
@@ -53,19 +70,40 @@ export function Cooking() {
       const names: Record<string, string> = {};
       for (const technique of detail.techniques) names[technique.id] = technique.name;
       setTechniqueNames(names);
+      setDifficulty(detail.difficulty);
     });
   }, [id, navigate]);
 
+  useEffect(() => {
+    if (!user || !isSupabaseConfigured) {
+      setBaseXp(0);
+      return;
+    }
+    let active = true;
+    Promise.all([getTechniqueProgress(user.id), sumCompletedCookingStars(user.id)])
+      .then(([rows, stars]) => {
+        if (!active) return;
+        const cleared = rows.filter((row) => row.status === "cleared").length;
+        setBaseXp(playerLevelFromXp(cleared * XP_PER_CLEAR + stars * XP_PER_STAR).totalXp);
+      })
+      .catch(() => {
+        if (active) setBaseXp(0);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
   draftRef.current =
     recipe && id
-      ? { recipeId: id, recipe, startedAt, progressIndex, viewIndex }
+      ? { recipeId: id, recipe, startedAt, progressIndex, viewIndex, onIntro }
       : null;
 
   useEffect(() => {
-    if (recipe && id) {
-      saveCookingDraft({ recipeId: id, recipe, startedAt, progressIndex, viewIndex });
+    if (recipe && id && !onSummary) {
+      saveCookingDraft({ recipeId: id, recipe, startedAt, progressIndex, viewIndex, onIntro });
     }
-  }, [id, recipe, startedAt, progressIndex, viewIndex]);
+  }, [id, recipe, startedAt, progressIndex, viewIndex, onIntro, onSummary]);
 
   useEffect(() => {
     function persist() {
@@ -78,6 +116,13 @@ export function Cooking() {
       window.removeEventListener("beforeunload", persist);
     };
   }, []);
+
+  useEffect(() => {
+    if (!onSummary) return;
+    sessionStorage.setItem("cookingpass:progress-percent", String(fromPercent));
+    const frame = requestAnimationFrame(() => setBarReady(true));
+    return () => cancelAnimationFrame(frame);
+  }, [onSummary, fromPercent]);
 
   const total = recipe?.steps.length ?? 0;
   const step = recipe?.steps[viewIndex];
@@ -112,22 +157,40 @@ export function Cooking() {
   }
 
   async function complete() {
-    if (!user || !recipe) return;
+    if (!recipe) return;
     setSaving(true);
     setError("");
+    const gained = cookingXpFromDifficulty(difficulty);
+    const fromState = playerLevelFromXp(baseXp);
+    const toState = playerLevelFromXp(baseXp + gained);
+    setFromPercent(toState.barPercent < fromState.barPercent ? 0 : fromState.barPercent);
+    setToPercent(toState.barPercent);
+    setGainedXp(gained);
+
     try {
-      await saveCookingHistory({
-        userId: user.id,
-        recipeId: id,
-        ingredients: recipe.ingredients,
-        adjustedRecipe: recipe,
-        completed: true,
-        durationSeconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
-        techniqueIds: usedTechniqueIds,
-      });
+      const durationSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+      if (user) {
+        await saveCookingHistory({
+          userId: user.id,
+          recipeId: id,
+          ingredients: recipe.ingredients,
+          adjustedRecipe: recipe,
+          completed: true,
+          durationSeconds,
+          techniqueIds: usedTechniqueIds,
+        });
+      } else {
+        stashPendingCookingSave({
+          recipeId: id,
+          ingredients: recipe.ingredients,
+          adjustedRecipe: recipe,
+          durationSeconds,
+          techniqueIds: usedTechniqueIds,
+        });
+      }
       finishedRef.current = true;
       clearCookingSession(id);
-      navigate("/profile");
+      setOnSummary(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("cookSaveError"));
     } finally {
@@ -135,10 +198,42 @@ export function Cooking() {
     }
   }
 
-  if (!ready || !recipe || !step) {
+  if (!ready || !recipe || (!step && !onSummary)) {
     return (
       <main className="page">
         {ready ? <ErrorState message={t("cookSessionMissing")} /> : null}
+      </main>
+    );
+  }
+
+  if (onSummary) {
+    return (
+      <main className="page pb-8">
+        <p className="text-xs font-medium text-muted">{t("cookSummaryTitle")}</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight break-keep">{recipe.title}</h1>
+        <p className="mt-4 text-2xl font-black text-accent">{t("cookSummaryXp", { n: gainedXp })}</p>
+        {barReady ? <ProgressBar value={toPercent} /> : <ProgressBar value={fromPercent} />}
+        {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+        <button className="btn-primary mt-8 w-full" type="button" onClick={() => navigate("/")}>
+          {t("cookSummaryHome")}
+        </button>
+        {user ? null : (
+          <button
+            className="btn-secondary mt-2 w-full"
+            type="button"
+            onClick={() => navigate("/login", { state: { from: "/" } })}
+          >
+            {t("cookSummaryLogin")}
+          </button>
+        )}
+      </main>
+    );
+  }
+
+  if (!step) {
+    return (
+      <main className="page">
+        <ErrorState message={t("cookSessionMissing")} />
       </main>
     );
   }

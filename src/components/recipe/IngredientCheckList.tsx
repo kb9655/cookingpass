@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { formatAmount, scaleAmount } from "../../lib/formatAmount";
+import { formatUnit } from "../../lib/formatUnit";
 import { useLocale } from "../../i18n/locale";
 import {
   deleteUserIngredientByIngredientId,
@@ -44,7 +45,7 @@ export function IngredientCheckList({
   baseServings: number;
   onChange: (items: IngredientCheck[]) => void;
 }) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const [items, setItems] = useState<IngredientCheck[]>(() => toChecks(ingredients, pantry));
 
   useEffect(() => {
@@ -114,7 +115,7 @@ export function IngredientCheckList({
                       baseServings,
                     ),
                   )}{" "}
-                  {item.unit}
+                  {formatUnit(item.unit, locale)}
                 </p>
               </div>
               <label className="field">

@@ -1,0 +1,16 @@
+---
+description: Production deploys use Vercel CLI, not Netlify
+alwaysApply: true
+---
+
+# Production deploy
+
+When the user asks to deploy to production (프로덕션 배포, deploy prod, ship live), use Vercel:
+
+```bash
+npx vercel --prod --yes
+```
+
+Do not default to Netlify. Use Netlify only if the user names Netlify explicitly.
+
+`vercel.json` has `git.deploymentEnabled: false`, so a git push does not publish to Vercel. CLI deploy is required.

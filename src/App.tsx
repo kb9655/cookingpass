@@ -22,14 +22,7 @@ export default function App() {
         <Route path="/techniques/:id" element={<TechniqueDetail />} />
         <Route path="/recipes" element={<Recipes />} />
         <Route path="/recipes/:id" element={<RecipeDetail />} />
-        <Route
-          path="/cook/:id"
-          element={
-            <ProtectedRoute>
-              <Cooking />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/cook/:id" element={<Cooking />} />
         <Route
           path="/profile"
           element={

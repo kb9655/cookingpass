@@ -7,6 +7,7 @@ export type CookingDraft = {
   startedAt: number;
   progressIndex: number;
   viewIndex: number;
+  onIntro: boolean;
 };
 
 const DRAFT_KEY = "cookingpass:cook-draft";
@@ -16,6 +17,19 @@ function isDraft(value: unknown): value is CookingDraft {
   if (!value || typeof value !== "object") return false;
   const draft = value as CookingDraft;
   return Boolean(draft.recipeId && draft.recipe?.steps?.length);
+}
+
+function withIntro(draft: CookingDraft): CookingDraft {
+  const onIntro =
+    typeof draft.onIntro === "boolean"
+      ? draft.onIntro
+      : draft.progressIndex === 0 && draft.viewIndex === 0;
+  return {
+    ...draft,
+    progressIndex: Math.max(0, draft.progressIndex ?? 0),
+    viewIndex: Math.max(0, draft.viewIndex ?? 0),
+    onIntro,
+  };
 }
 
 export function saveCookingDraft(draft: CookingDraft): void {
@@ -28,11 +42,7 @@ export function loadCookingDraft(): CookingDraft | null {
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!isDraft(parsed)) return null;
-    return {
-      ...parsed,
-      progressIndex: Math.max(0, parsed.progressIndex ?? 0),
-      viewIndex: Math.max(0, parsed.viewIndex ?? 0),
-    };
+    return withIntro(parsed as CookingDraft);
   } catch {
     return null;
   }
@@ -50,6 +60,7 @@ export async function requestAdjustedRecipe(input: GenerateRecipeInput): Promise
     startedAt: Date.now(),
     progressIndex: 0,
     viewIndex: 0,
+    onIntro: true,
   };
   saveCookingDraft(draft);
   sessionStorage.removeItem(legacyKey(input.recipeId));
@@ -71,6 +82,7 @@ export function loadCookingSession(recipeId: string): CookingDraft | null {
       startedAt: parsed.startedAt,
       progressIndex: 0,
       viewIndex: 0,
+      onIntro: true,
     };
     saveCookingDraft(migrated);
     sessionStorage.removeItem(legacyKey(recipeId));

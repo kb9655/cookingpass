@@ -27,4 +27,5 @@ export type CookingHistory = {
   cooked_at: string;
   completed: boolean;
   duration_seconds: number | null;
+  difficulty: number;
 };
