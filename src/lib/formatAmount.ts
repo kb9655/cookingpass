@@ -21,6 +21,16 @@ function matchFraction(value: number): string | null {
   return null;
 }
 
+export function roundAmount(value: number, decimals = 2): number {
+  if (!Number.isFinite(value)) return 0;
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+export function amountsClose(left: number, right: number, epsilon = 0.011): boolean {
+  return Math.abs(left - right) <= epsilon;
+}
+
 export function scaleAmount(amount: number, servings: number, baseServings: number): number {
   if (!Number.isFinite(amount)) return 0;
   if (!Number.isFinite(baseServings) || baseServings <= 0) return amount;

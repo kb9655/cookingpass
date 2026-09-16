@@ -47,6 +47,9 @@ export const generateRecipeRequestSchema = z.object({
   servings: z.number().int().min(1).max(16),
   notes: z.string().max(500).optional().default(""),
   locale: z.enum(["en", "ko"]).optional().default("ko"),
+  mass: z.enum(["ko", "us"]).optional().default("ko"),
+  volume: z.enum(["ko", "us"]).optional().default("ko"),
+  length: z.enum(["ko", "us"]).optional().default("ko"),
   recipe: recipeSnapshotSchema,
   pantry: z.array(pantryItemSchema).optional().default([]),
 });

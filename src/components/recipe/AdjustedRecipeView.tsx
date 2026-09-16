@@ -1,10 +1,11 @@
-import { formatAmount } from "../../lib/formatAmount";
-import { formatUnit } from "../../lib/formatUnit";
+import { formatDisplayedMeasure, localizeInstruction } from "../../lib/formatMeasure";
 import { useLocale } from "../../i18n/locale";
+import { useMeasure } from "../../i18n/measure";
 import type { AdjustedRecipe } from "../../types/recipe";
 
 export function AdjustedRecipeView({ recipe }: { recipe: AdjustedRecipe }) {
   const { locale, t } = useLocale();
+  const { prefs } = useMeasure();
 
   return (
     <div className="space-y-5">
@@ -25,7 +26,7 @@ export function AdjustedRecipeView({ recipe }: { recipe: AdjustedRecipe }) {
         <ul className="mt-2 space-y-1 text-sm text-muted">
           {recipe.ingredients.map((item) => (
             <li key={`${item.name}-${item.substituted_for ?? ""}`}>
-              {item.name} · {formatAmount(item.amount)} {formatUnit(item.unit, locale)}
+              {item.name} · {formatDisplayedMeasure(item.amount, item.unit, prefs, locale)}
               {item.substituted_for ? ` (${t("recipeSubstitute")}: ${item.substituted_for})` : null}
               {item.note ? ` · ${item.note}` : null}
             </li>
@@ -38,7 +39,7 @@ export function AdjustedRecipeView({ recipe }: { recipe: AdjustedRecipe }) {
           {recipe.steps.map((item) => (
             <li key={item.step}>
               <span className="font-medium text-ink">{item.step}. </span>
-              {item.instruction}
+              {localizeInstruction(item.instruction, prefs)}
             </li>
           ))}
         </ol>

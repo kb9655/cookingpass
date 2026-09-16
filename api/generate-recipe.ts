@@ -23,6 +23,9 @@ const generateRecipeRequestSchema = z.object({
   servings: z.number().int().min(1).max(16),
   notes: z.string().max(500).optional().default(""),
   locale: z.enum(["en", "ko"]).optional().default("ko"),
+  mass: z.enum(["ko", "us"]).optional().default("ko"),
+  volume: z.enum(["ko", "us"]).optional().default("ko"),
+  length: z.enum(["ko", "us"]).optional().default("ko"),
   recipe: z.object({
     id: z.string().min(1),
     name: z.string().min(1),
@@ -273,7 +276,7 @@ async function handlePost(req: Request) {
     return errorResponse("요청 데이터가 올바르지 않습니다.", 400);
   }
 
-  const { recipe_id, servings, notes, locale, recipe, pantry, substitutions, missing_tools } =
+  const { recipe_id, servings, notes, locale, mass, volume, length, recipe, pantry, substitutions, missing_tools } =
     parsedRequest.data;
   if (recipe.id !== recipe_id) {
     return errorResponse("레시피 식별자가 일치하지 않습니다.", 400);
@@ -302,7 +305,16 @@ async function handlePost(req: Request) {
     "4) missing_tools에 있는 도구 없이 비슷한 결과가 나오도록 단계와 도구를 바꾸세요. 예: 오븐 없이 팬이나 에어프라이어.",
     locale === "en"
       ? "Write steps in clear English. Keep ingredient names explicit for originals and substitutes."
-      : "단계는 한국어로 쉽게 쓰고, 재료 이름은 원문과 대체명을 명확히 남기세요. 단위는 한국어로 쓰세요. count는 개, cup은 컵, tablespoon은 큰술, teaspoon은 작은술입니다. 마땅한 한글이 없으면 음차로 쓰세요.",
+      : "단계는 한국어로 쉽게 쓰고, 재료 이름은 원문과 대체명을 명확히 남기세요. 마땅한 한글이 없으면 음차로 쓰세요.",
+    mass === "us"
+      ? "Mass units: oz or lb. Put oz or lb in ingredient unit fields."
+      : "질량 단위는 g(많으면 kg)입니다. ingredient unit 필드는 g 또는 kg로 두세요.",
+    volume === "us"
+      ? "Volume units: cup, tbsp, tsp. Use cups at 1/4 cup or more."
+      : "부피 단위는 ¼컵 이상이면 컵, 그보다 적으면 큰술·작은술입니다. ingredient unit 필드는 컵, 큰술, 작은술 중 하나로 두세요.",
+    length === "us"
+      ? "Length units: inch. Keep inches in steps."
+      : "길이는 cm로 쓰세요. 인치를 쓰지 마세요.",
     "technique_id는 제공된 기술 id만 사용하고, 없으면 null로 두세요.",
     "기다리는 행동(끓이기, 굽기, 재우기, 식히기, 삶기, 찌기, 오븐 등)만 time_minutes에 분을 넣고, 썰기·섞기처럼 바로 끝나는 단계는 null로 두세요.",
     "",

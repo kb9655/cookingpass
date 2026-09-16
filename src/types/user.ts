@@ -1,4 +1,5 @@
 import type { Locale } from "../i18n/messages";
+import type { MeasureSystem } from "../lib/formatMeasure";
 
 export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
 
@@ -9,6 +10,9 @@ export type Profile = {
   available_tools: string[];
   preferred_max_minutes: number | null;
   preferred_locale: Locale;
+  preferred_mass: MeasureSystem;
+  preferred_volume: MeasureSystem;
+  preferred_length: MeasureSystem;
 };
 
 export type RecommendationWeights = {

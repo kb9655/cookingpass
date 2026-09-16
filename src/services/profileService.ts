@@ -2,7 +2,7 @@ import { requireSupabase } from "../lib/supabase";
 import type { ExperienceLevel, Profile } from "../types/user";
 
 const PROFILE_COLUMNS =
-  "id, display_name, experience_level, available_tools, preferred_max_minutes, preferred_locale";
+  "id, display_name, experience_level, available_tools, preferred_max_minutes, preferred_locale, preferred_mass, preferred_volume, preferred_length";
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await requireSupabase()
@@ -20,7 +20,14 @@ export async function updateProfile(
   patch: Partial<
     Pick<
       Profile,
-      "display_name" | "experience_level" | "available_tools" | "preferred_max_minutes" | "preferred_locale"
+      | "display_name"
+      | "experience_level"
+      | "available_tools"
+      | "preferred_max_minutes"
+      | "preferred_locale"
+      | "preferred_mass"
+      | "preferred_volume"
+      | "preferred_length"
     >
   >,
 ): Promise<Profile> {

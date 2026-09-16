@@ -8,8 +8,10 @@ import { importSharedRecipe, listUserRecipes } from "../services/userRecipeServi
 import { updateProfile } from "../services/profileService";
 import { listKnownTools } from "../services/recipeService";
 import { LanguageToggle } from "../components/common/LanguageToggle";
+import { MeasureToggle } from "../components/common/MeasureToggle";
 import { ProgressBar } from "../components/common/ProgressBar";
 import { EmptyState, ErrorState, PageLoader } from "../components/common/Feedback";
+import { RecentRecipeList } from "../components/recipe/RecentRecipeList";
 import { useLocale } from "../i18n/locale";
 import { playerLevelFromClears } from "../lib/playerLevel";
 import { DEFAULT_TOOLS, mergeToolOptions } from "../lib/tools";
@@ -181,6 +183,7 @@ export function Profile() {
           <section className="card-casual mt-6 p-5">
             <h2 className="text-lg font-black">{t("profileSettings")}</h2>
             <LanguageToggle className="mt-4" />
+            <MeasureToggle className="mt-4" />
           </section>
 
           <section className="card-casual mt-6 p-5">
@@ -270,6 +273,8 @@ export function Profile() {
               </ul>
             )}
           </section>
+
+          <RecentRecipeList title={t("profileRecent")} />
 
           <section className="mt-6">
             <h2 className="text-lg font-black">{t("profileHistory")}</h2>

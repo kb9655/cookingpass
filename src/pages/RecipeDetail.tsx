@@ -12,12 +12,20 @@ import { getRecipeDetail } from "../services/recipeService";
 import { listUserIngredients } from "../services/ingredientService";
 import { requestAdjustedRecipe } from "../services/aiService";
 import { listNotePresets, upsertNotePreset } from "../services/notePresetService";
+import { getLocalVisit, rememberRecipeVisit } from "../services/recipeVisitService";
 import { updateProfile } from "../services/profileService";
 import { formatAmount, scaleAmount } from "../lib/formatAmount";
+import {
+  convertAmount,
+  formatDisplayedMeasure,
+  localizeInstruction,
+  toDisplayMeasure,
+} from "../lib/formatMeasure";
 import { formatUnit } from "../lib/formatUnit";
 import { ApiError, suggestSubstitutes } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
+import { useMeasure } from "../i18n/measure";
 import type { MessageKey } from "../i18n/messages";
 import type { AdjustedRecipe, RecipeDetail as RecipeDetailType } from "../types/recipe";
 import type { RecipeIngredient, UserIngredient } from "../types/ingredient";
@@ -87,6 +95,7 @@ export function RecipeDetail() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const { locale, t } = useLocale();
+  const { prefs } = useMeasure();
   const [recipe, setRecipe] = useState<RecipeDetailType | null>(null);
   const [pantry, setPantry] = useState<UserIngredient[]>([]);
   const [checks, setChecks] = useState<IngredientCheck[]>([]);
@@ -109,11 +118,11 @@ export function RecipeDetail() {
 
   useEffect(() => {
     setStep("servings");
-    setNotes("");
     setAdjusted(null);
     setChoices([]);
     setError("");
     toolsInitFor.current = "";
+    setNotes(getLocalVisit(id)?.notes ?? "");
   }, [id]);
 
   useEffect(() => {
@@ -128,7 +137,9 @@ export function RecipeDetail() {
         if (!active) return;
         setRecipe(next);
         setPantry(nextPantry);
-        if (next) setServings(next.servings);
+        const visit = getLocalVisit(id);
+        if (visit) setServings(visit.servings);
+        else if (next) setServings(next.servings);
       })
       .catch((err: unknown) => {
         if (active) setError(err instanceof Error ? err.message : t("recipesLoadError"));
@@ -242,6 +253,9 @@ export function RecipeDetail() {
         servings,
         notes,
         locale,
+        mass: prefs.mass,
+        volume: prefs.volume,
+        length: prefs.length,
         substitutions: choices
           .filter((item) => item.chosen)
           .map((item) => ({ original: item.original, replacement: item.chosen as string })),
@@ -284,6 +298,19 @@ export function RecipeDetail() {
     }
   }
 
+  function rememberVisit() {
+    if (!recipe) return;
+    rememberRecipeVisit(
+      {
+        recipeId: recipe.id,
+        recipeName: recipe.name,
+        servings,
+        notes,
+      },
+      user?.id,
+    );
+  }
+
   function goToReview() {
     setSaveOpen(false);
     setStep("review");
@@ -304,6 +331,7 @@ export function RecipeDetail() {
     if (!recipe) return;
     setError("");
     if (step === "servings") {
+      rememberVisit();
       setStep("ingredients");
       return;
     }
@@ -326,6 +354,7 @@ export function RecipeDetail() {
       return;
     }
     if (step === "notes") {
+      rememberVisit();
       if (user && notes.trim()) {
         setSaveOpen(true);
         return;
@@ -443,7 +472,7 @@ export function RecipeDetail() {
               {recipe.steps.map((item) => (
                 <li key={item.id}>
                   <span className="font-medium text-ink">{item.step_number}. </span>
-                  {item.instruction}
+                  {localizeInstruction(item.instruction, prefs)}
                 </li>
               ))}
             </ol>
@@ -641,7 +670,7 @@ export function RecipeDetail() {
                   <ul className="mt-2 space-y-1 text-sm text-muted">
                     {adjusted.ingredients.map((item) => (
                       <li key={`${item.name}-${item.substituted_for ?? ""}`}>
-                        {item.name} · {formatAmount(item.amount)} {formatUnit(item.unit, locale)}
+                        {item.name} · {formatDisplayedMeasure(item.amount, item.unit, prefs, locale)}
                         {item.substituted_for
                           ? ` (${t("recipeSubstitute")}: ${item.substituted_for})`
                           : null}
@@ -656,7 +685,7 @@ export function RecipeDetail() {
                     {adjusted.steps.map((item) => (
                       <li key={item.step}>
                         <span className="font-medium text-ink">{item.step}. </span>
-                        {item.instruction}
+                        {localizeInstruction(item.instruction, prefs)}
                       </li>
                     ))}
                   </ol>
@@ -710,16 +739,20 @@ export function RecipeDetail() {
         >
           <p>{t("recipeShortageLead")}</p>
           <ul className="mt-3 space-y-1">
-            {shortages.map((item) => (
-              <li key={item.name}>
-                {t("recipeShortageItem", {
-                  name: item.name,
-                  need: formatAmount(item.need),
-                  have: formatAmount(item.have),
-                  unit: formatUnit(item.unit, locale),
-                })}
-              </li>
-            ))}
+            {shortages.map((item) => {
+              const shown = toDisplayMeasure(item.need, item.unit, prefs);
+              const haveShown = convertAmount(item.have, item.unit, shown.unit);
+              return (
+                <li key={item.name}>
+                  {t("recipeShortageItem", {
+                    name: item.name,
+                    need: formatAmount(shown.amount),
+                    have: formatAmount(haveShown),
+                    unit: formatUnit(shown.unit, locale),
+                  })}
+                </li>
+              );
+            })}
           </ul>
         </ConfirmDialog>
       ) : null}

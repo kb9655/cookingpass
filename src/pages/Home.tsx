@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { BookOpen, UtensilsCrossed } from "lucide-react";
+import { RecentRecipeList } from "../components/recipe/RecentRecipeList";
 import { useLocale } from "../i18n/locale";
 
 export function Home() {
@@ -32,6 +33,7 @@ export function Home() {
           </div>
         </Link>
       </div>
+      <RecentRecipeList title={t("homeRecent")} />
     </main>
   );
 }

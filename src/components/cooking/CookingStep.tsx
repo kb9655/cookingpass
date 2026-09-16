@@ -1,5 +1,7 @@
 import { Lightbulb } from "lucide-react";
 import type { AdjustedStep } from "../../types/recipe";
+import { useMeasure } from "../../i18n/measure";
+import { localizeInstruction } from "../../lib/formatMeasure";
 import { StepTimer } from "./StepTimer";
 
 export function CookingStep({
@@ -9,11 +11,12 @@ export function CookingStep({
   step: AdjustedStep;
   techniqueName?: string;
 }) {
+  const { prefs } = useMeasure();
   const timed = typeof step.time_minutes === "number" && step.time_minutes > 0;
 
   return (
     <section>
-      <p className="text-lg leading-relaxed">{step.instruction}</p>
+      <p className="text-lg leading-relaxed">{localizeInstruction(step.instruction, prefs)}</p>
       {techniqueName ? (
         <p className="mt-4 inline-flex items-center gap-2 text-sm text-accent">
           <Lightbulb className="h-4 w-4" strokeWidth={1.75} />

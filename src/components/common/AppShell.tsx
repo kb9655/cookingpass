@@ -6,13 +6,14 @@ import { useLocale } from "../../i18n/locale";
 import { playerLevelFromClears } from "../../lib/playerLevel";
 import { isSupabaseConfigured } from "../../lib/supabase";
 import { flushPendingCookingSave, sumCompletedCookingStars } from "../../services/historyService";
+import { mergeRecipeVisits } from "../../services/recipeVisitService";
 import { getTechniqueProgress } from "../../services/techniqueService";
 import { RecommendPrompt } from "./RecommendPrompt";
 
 export function AppShell() {
   const location = useLocation();
   const { configured, user } = useAuth();
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const [cleared, setCleared] = useState(0);
   const [cookingStars, setCookingStars] = useState(0);
   const isAuthPage = location.pathname.startsWith("/login") || location.pathname.startsWith("/signup");
@@ -54,6 +55,11 @@ export function AppShell() {
       active = false;
     };
   }, [user, location.pathname]);
+
+  useEffect(() => {
+    if (!user || !isSupabaseConfigured) return;
+    void mergeRecipeVisits(user.id, locale).catch(() => undefined);
+  }, [user, locale]);
 
   const tabs = [
     { to: "/", label: t("navHome"), icon: House, end: true },
