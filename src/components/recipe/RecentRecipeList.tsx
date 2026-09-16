@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import { useLocale } from "../../i18n/locale";
-import { readLocalVisits, type RecipeVisit } from "../../services/recipeVisitService";
+import { readLocalVisits, subscribeVisits, type RecipeVisit } from "../../services/recipeVisitService";
 
 export function RecentRecipeList({ title }: { title: string }) {
   const { locale, t } = useLocale();
-  const location = useLocation();
+  const { user } = useAuth();
   const [visits, setVisits] = useState<RecipeVisit[]>(() => readLocalVisits());
 
   useEffect(() => {
-    setVisits(readLocalVisits());
-  }, [location.pathname]);
+    const refresh = () => setVisits(readLocalVisits());
+    refresh();
+    return subscribeVisits(refresh);
+  }, [user]);
 
   if (visits.length === 0) return null;
 

@@ -119,6 +119,7 @@ export function scoreRecipe(
     ...recipe,
     ...parts,
     score,
+    ingredient_names: recipe.ingredients.map((item) => item.name),
   };
 }
 

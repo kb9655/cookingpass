@@ -249,24 +249,10 @@ export async function listScoredRecipes(input: {
   preferredMaxMinutes: number | null;
   availableTools: string[];
   focusTechniqueId: string | null;
-  query?: string;
-  category?: string;
 }): Promise<ScoredRecipe[]> {
   const [records, weights] = await Promise.all([listParsedRecipes(input.locale), getRecommendationWeights()]);
-  const query = input.query?.trim().toLowerCase() ?? "";
-  const category = input.category?.trim() ?? "";
 
-  const filtered = records.filter((record) => {
-    const matchesQuery =
-      !query ||
-      record.recipe.name.toLowerCase().includes(query) ||
-      record.recipe.description.toLowerCase().includes(query) ||
-      record.ingredients.some((ingredient) => ingredient.name.toLowerCase().includes(query));
-    const matchesCategory = !category || record.recipe.category === category;
-    return matchesQuery && matchesCategory;
-  });
-
-  const scored = filtered.map((record) =>
+  const scored = records.map((record) =>
     scoreRecipe(
       {
         ...record.recipe,
@@ -278,4 +264,15 @@ export async function listScoredRecipes(input: {
   );
 
   return sortByScore(scored);
+}
+
+export function recipeMatchesSearch(recipe: ScoredRecipe, query: string, category: string): boolean {
+  const needle = query.trim().toLowerCase();
+  const matchesCategory = !category.trim() || recipe.category === category;
+  if (!matchesCategory) return false;
+  if (!needle) return true;
+  if (recipe.name.toLowerCase().includes(needle)) return true;
+  if (recipe.description.toLowerCase().includes(needle)) return true;
+  if (recipe.required_tools.some((tool) => tool.toLowerCase().includes(needle))) return true;
+  return recipe.ingredient_names.some((name) => name.toLowerCase().includes(needle));
 }

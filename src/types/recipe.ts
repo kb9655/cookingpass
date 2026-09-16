@@ -76,4 +76,5 @@ export type ScoredRecipe = Recipe & {
   time_fit: number;
   tool_fit: number;
   relatedness: number;
+  ingredient_names: string[];
 };

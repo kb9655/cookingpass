@@ -4,7 +4,7 @@ import { RecipeCard } from "../components/recipe/RecipeCard";
 import { EmptyState, ErrorState, PageLoader } from "../components/common/Feedback";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
-import { listRecipeCategories, listScoredRecipes } from "../services/recipeService";
+import { listRecipeCategories, listScoredRecipes, recipeMatchesSearch } from "../services/recipeService";
 import { getTechniqueProgress } from "../services/techniqueService";
 import { listUserIngredients } from "../services/ingredientService";
 import { isSupabaseConfigured } from "../lib/supabase";
@@ -21,9 +21,12 @@ export function Recipes() {
   const [category, setCategory] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [reloadToken, setReloadToken] = useState(0);
 
-  function load() {
-    setLoading(true);
+  useEffect(() => {
+    let cancelled = false;
+    const showLoader = recipes.length === 0;
+    if (showLoader) setLoading(true);
     setError("");
 
     const pantryTask = listUserIngredients(locale);
@@ -32,6 +35,7 @@ export function Recipes() {
 
     Promise.all([listRecipeCategories(locale), pantryTask, progressTask])
       .then(([nextCategories, pantry, progress]) => {
+        if (cancelled) return [] as ScoredRecipe[];
         setCategories(nextCategories);
         return listScoredRecipes({
           locale,
@@ -41,25 +45,32 @@ export function Recipes() {
           preferredMaxMinutes: profile?.preferred_max_minutes ?? null,
           availableTools: profile?.available_tools ?? [],
           focusTechniqueId,
-          query,
-          category,
         });
       })
-      .then(setRecipes)
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : t("recipesLoadError"));
+      .then((next) => {
+        if (!cancelled) setRecipes(next);
       })
-      .finally(() => setLoading(false));
-  }
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : t("recipesLoadError"));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-  useEffect(() => {
-    load();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, profile, focusTechniqueId, query, category, locale]);
+  }, [user, profile, focusTechniqueId, locale, t, reloadToken]);
+
+  const visible = useMemo(
+    () => recipes.filter((recipe) => recipeMatchesSearch(recipe, query, category)),
+    [recipes, query, category],
+  );
 
   const highlighted = useMemo(
-    () => (focusTechniqueId ? recipes.filter((item) => item.relatedness === 1) : []),
-    [recipes, focusTechniqueId],
+    () => (focusTechniqueId ? visible.filter((item) => item.relatedness === 1) : []),
+    [visible, focusTechniqueId],
   );
 
   return (
@@ -96,16 +107,16 @@ export function Recipes() {
 
       {error ? (
         <div className="mt-6">
-          <ErrorState message={error} onRetry={load} />
+          <ErrorState message={error} onRetry={() => setReloadToken((current) => current + 1)} />
         </div>
       ) : null}
       <div className="mt-6 grid gap-3">
         {loading ? (
           <PageLoader label={t("pageLoading")} />
-        ) : recipes.length === 0 ? (
+        ) : visible.length === 0 ? (
           <EmptyState title={t("recipesEmptyTitle")} body={t("recipesEmptyBody")} />
         ) : (
-          recipes.map((recipe) => (
+          visible.map((recipe) => (
             <RecipeCard
               key={recipe.id}
               recipe={recipe}

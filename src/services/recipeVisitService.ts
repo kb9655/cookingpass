@@ -11,6 +11,18 @@ export type RecipeVisit = {
 
 const STORAGE_KEY = "cookingpass:recent-recipes";
 const LIMIT = 20;
+const listeners = new Set<() => void>();
+
+function notifyVisitsChanged(): void {
+  listeners.forEach((listener) => listener());
+}
+
+export function subscribeVisits(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
 
 type RecipeNameJoin = {
   name?: string;
@@ -52,6 +64,7 @@ export function readLocalVisits(): RecipeVisit[] {
 
 function writeLocalVisits(items: RecipeVisit[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, LIMIT)));
+  notifyVisitsChanged();
 }
 
 function upsertLocal(visit: RecipeVisit): RecipeVisit[] {
