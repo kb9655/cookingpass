@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import { env } from "./env";
+import { env } from "./env.js";
 
 export function json(data: unknown, status = 200): Response {
   return Response.json(data, {

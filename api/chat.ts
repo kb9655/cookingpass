@@ -7,9 +7,9 @@ import {
   toUIMessageStream,
 } from "ai";
 import { z } from "zod";
-import { errorResponse, requireUser } from "./_shared/auth";
-import { isClearlyUnrelatedRequest } from "./_shared/chatScope";
-import { env } from "./_shared/env";
+import { errorResponse, requireUser } from "./_shared/auth.js";
+import { isClearlyUnrelatedRequest } from "./_shared/chatScope.js";
+import { env } from "./_shared/env.js";
 
 export const maxDuration = 30;
 
