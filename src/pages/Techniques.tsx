@@ -57,8 +57,6 @@ export function Techniques() {
     return map;
   }, [progress]);
 
-  const currentId = techniques.find((item) => (statusById.get(item.id) ?? "unlocked") !== "cleared")?.id;
-
   return (
     <main className="page">
       <h1 className="text-3xl font-black tracking-tight">{t("techniquesTitle")}</h1>
@@ -82,7 +80,6 @@ export function Techniques() {
                 key={technique.id}
                 technique={technique}
                 status={status}
-                current={technique.id === currentId}
                 scores={scoresForTechnique(technique.id, childIdsByParent[technique.id] ?? [], progress)}
               />
             );

@@ -87,6 +87,19 @@ export async function listRecipes(locale: Locale = "ko"): Promise<Recipe[]> {
   return (data ?? []).map((row) => localizeRecipe(row, translations.get(row.id)));
 }
 
+export async function listKnownTools(): Promise<string[]> {
+  const { data, error } = await requireSupabase().from("recipes").select("required_tools");
+  if (error) throw error;
+  const tools = new Set<string>();
+  for (const row of data ?? []) {
+    for (const tool of (row.required_tools as string[] | null) ?? []) {
+      const name = String(tool).trim();
+      if (name) tools.add(name);
+    }
+  }
+  return [...tools].sort((a, b) => a.localeCompare(b, "ko"));
+}
+
 export async function listRecipeCategories(locale: Locale = "ko"): Promise<string[]> {
   const { data, error } = await requireSupabase()
     .from("recipe_translations")

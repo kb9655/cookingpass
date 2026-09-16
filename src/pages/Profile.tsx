@@ -5,15 +5,15 @@ import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { getTechniqueProgress, listTechniques, resetAllTechniqueProgress } from "../services/techniqueService";
 import { listCookingHistory } from "../services/historyService";
 import { updateProfile } from "../services/profileService";
+import { listKnownTools } from "../services/recipeService";
 import { LanguageToggle } from "../components/common/LanguageToggle";
 import { ProgressBar } from "../components/common/ProgressBar";
 import { EmptyState, ErrorState, PageLoader } from "../components/common/Feedback";
 import { useLocale } from "../i18n/locale";
 import { playerLevelFromClears } from "../lib/playerLevel";
+import { DEFAULT_TOOLS, mergeToolOptions } from "../lib/tools";
 import type { Technique, TechniqueProgress } from "../types/technique";
 import type { CookingHistory, ExperienceLevel } from "../types/user";
-
-const TOOL_OPTIONS = ["칼", "도마", "프라이팬", "냄비", "주걱", "채칼"];
 
 export function Profile() {
   const { user, profile, signOut, refreshProfile } = useAuth();
@@ -27,6 +27,7 @@ export function Profile() {
   const [resetting, setResetting] = useState(false);
   const [experience, setExperience] = useState<ExperienceLevel>(profile?.experience_level ?? "beginner");
   const [tools, setTools] = useState<string[]>(profile?.available_tools ?? []);
+  const [knownTools, setKnownTools] = useState<string[]>(DEFAULT_TOOLS);
 
   useEffect(() => {
     setExperience(profile?.experience_level ?? "beginner");
@@ -41,12 +42,14 @@ export function Profile() {
       listTechniques(),
       getTechniqueProgress(user.id),
       listCookingHistory(user.id, locale),
+      listKnownTools().catch(() => DEFAULT_TOOLS),
     ])
-      .then(([nextTechniques, nextProgress, nextHistory]) => {
+      .then(([nextTechniques, nextProgress, nextHistory, nextTools]) => {
         if (!active) return;
         setTechniques(nextTechniques);
         setProgress(nextProgress);
         setHistory(nextHistory);
+        setKnownTools(nextTools);
       })
       .catch((err: unknown) => {
         if (active) setError(err instanceof Error ? err.message : t("profileLoadError"));
@@ -77,6 +80,7 @@ export function Profile() {
 
   const cleared = progress.filter((item) => item.status === "cleared").length;
   const player = playerLevelFromClears(cleared);
+  const toolOptions = mergeToolOptions(DEFAULT_TOOLS, knownTools, tools);
 
   async function savePrefs() {
     if (!user) return;
@@ -153,7 +157,7 @@ export function Profile() {
             </div>
             <p className="mt-4 text-sm font-medium">{t("profileTools")}</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {TOOL_OPTIONS.map((tool) => {
+              {toolOptions.map((tool) => {
                 const active = tools.includes(tool);
                 return (
                   <button

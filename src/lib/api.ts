@@ -28,6 +28,13 @@ export type GenerateRecipeInput = {
     techniques: Array<{ id: string; name: string }>;
   };
   pantry: Array<{ name: string; amount: number; unit: string }>;
+  substitutions?: Array<{ original: string; replacement: string }>;
+  missing_tools?: string[];
+};
+
+export type SubstituteSuggestion = {
+  original: string;
+  options: string[];
 };
 
 async function jsonHeaders(): Promise<HeadersInit> {
@@ -58,6 +65,8 @@ export async function generateRecipe(input: GenerateRecipeInput): Promise<Adjust
       locale: input.locale ?? "ko",
       recipe: input.recipe,
       pantry: input.pantry,
+      substitutions: input.substitutions ?? [],
+      missing_tools: input.missing_tools ?? [],
     }),
   });
 
@@ -83,6 +92,42 @@ export async function generateRecipe(input: GenerateRecipeInput): Promise<Adjust
   }
 
   throw new ApiError("서버가 예상과 다른 응답을 반환했습니다.", 502);
+}
+
+export async function suggestSubstitutes(input: {
+  recipeName: string;
+  missing: Array<{ name: string; amount?: number; unit?: string }>;
+  pantry: Array<{ name: string; amount: number; unit: string }>;
+  locale?: "en" | "ko";
+}): Promise<SubstituteSuggestion[]> {
+  const response = await fetch("/api/suggest-substitutes", {
+    method: "POST",
+    headers: await jsonHeaders(),
+    body: JSON.stringify({
+      recipe_name: input.recipeName,
+      missing: input.missing,
+      pantry: input.pantry,
+      locale: input.locale ?? "ko",
+    }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { error?: string; suggestions?: SubstituteSuggestion[] }
+    | null;
+
+  if (!response.ok) {
+    const message =
+      payload && "error" in payload && payload.error
+        ? payload.error
+        : "대체 재료를 찾지 못했습니다.";
+    throw new ApiError(message, response.status);
+  }
+
+  if (!payload?.suggestions?.length) {
+    throw new ApiError("서버가 예상과 다른 응답을 반환했습니다.", 502);
+  }
+
+  return payload.suggestions;
 }
 
 export async function evaluateTechnique(input: {

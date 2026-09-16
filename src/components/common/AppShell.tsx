@@ -51,27 +51,25 @@ export function AppShell() {
           {t("loginNeedSupabase")}
         </div>
       ) : null}
-      {isAuthPage ? null : (
-        <header className="sticky top-0 z-20 border-b border-line bg-card/95 pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur-sm">
-          <div className="mx-auto flex min-h-16 max-w-lg items-center justify-between gap-3 px-4">
-            <Link to="/" className="min-w-0 truncate text-sm font-black tracking-tight">
-              Cooking Pass
+      <header className="sticky top-0 z-20 border-b border-line bg-card/95 pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur-sm">
+        <div className="mx-auto flex min-h-16 max-w-lg items-center justify-between gap-3 px-4">
+          <Link to="/" className="min-w-0 truncate text-sm font-black tracking-tight">
+            Cooking Pass
+          </Link>
+          {user ? (
+            <Link to="/profile" className="xp-chip max-w-[62%] shrink-0 overflow-hidden whitespace-nowrap" aria-label={t("navProfile")}>
+              <span className="text-accent">{t("profileLevel", { n: player.level })}</span>
+              <span className="hidden text-muted min-[360px]:inline">
+                {t("profileXp", { current: player.xpInLevel, next: player.xpToNext })}
+              </span>
             </Link>
-            {user ? (
-              <Link to="/profile" className="xp-chip max-w-[62%] shrink-0 overflow-hidden whitespace-nowrap" aria-label={t("navProfile")}>
-                <span className="text-accent">{t("profileLevel", { n: player.level })}</span>
-                <span className="hidden text-muted min-[360px]:inline">
-                  {t("profileXp", { current: player.xpInLevel, next: player.xpToNext })}
-                </span>
-              </Link>
-            ) : (
-              <Link to="/login" className="shrink-0 text-sm font-bold text-accent">
-                {t("headerLogin")}
-              </Link>
-            )}
-          </div>
-        </header>
-      )}
+          ) : (
+            <Link to="/login" className="shrink-0 text-sm font-bold text-accent">
+              {t("headerLogin")}
+            </Link>
+          )}
+        </div>
+      </header>
       <div className={hideTabs ? "min-w-0 flex-1" : "min-w-0 flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))]"}>
         <Outlet />
       </div>

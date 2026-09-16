@@ -33,7 +33,7 @@ export function Login() {
   }
 
   return (
-    <main className="page page-notch">
+    <main className="page">
       <LanguageToggle />
       <h1 className="mt-6 text-3xl font-semibold tracking-tight">{t("loginTitle")}</h1>
       <p className="mt-2 text-sm text-muted">{t("loginLead")}</p>
