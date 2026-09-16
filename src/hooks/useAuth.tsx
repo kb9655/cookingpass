@@ -8,9 +8,12 @@ import {
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { saveAuthReturnTo } from "../lib/authRedirect";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { getProfile } from "../services/profileService";
 import type { Profile } from "../types/user";
+
+export type SocialProvider = "google";
 
 type AuthContextValue = {
   user: User | null;
@@ -20,6 +23,7 @@ type AuthContextValue = {
   configured: boolean;
   refreshProfile: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithSocial: (provider: SocialProvider, returnTo: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -88,6 +92,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn: async (email, password) => {
         if (!supabase) throw new Error("Supabase가 설정되지 않았습니다.");
         const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      },
+      signInWithSocial: async (provider, returnTo) => {
+        if (!supabase) throw new Error("Supabase가 설정되지 않았습니다.");
+        saveAuthReturnTo(returnTo);
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
         if (error) throw error;
       },
       signUp: async (email, password, displayName) => {

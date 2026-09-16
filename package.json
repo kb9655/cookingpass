@@ -13,12 +13,14 @@
     "seed-demo-recipes": "node scripts/seed-demo-recipes-supabase.mjs"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.54",
+    "@ai-sdk/react": "^4.0.105",
     "@anthropic-ai/sdk": "^0.71.0",
     "@aws-sdk/client-s3": "^3.901.0",
     "@aws-sdk/s3-request-presigner": "^3.901.0",
     "@fontsource/outfit": "^5.2.8",
-    "@netlify/functions": "^4.2.6",
     "@supabase/supabase-js": "^2.57.4",
+    "ai": "^7.0.102",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -26,8 +28,8 @@
     "zod": "^4.1.8"
   },
   "devDependencies": {
-    "@netlify/vite-plugin": "^2.6.0",
     "@tailwindcss/vite": "^4.1.13",
+    "@types/node": "^22.20.3",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.2",

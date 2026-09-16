@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEmergencyChatPage } from "../components/chat/EmergencyChatProvider";
 import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { ErrorState, PageLoader, Skeleton } from "../components/common/Feedback";
 import { StarRating } from "../components/common/StarRating";
@@ -115,6 +116,27 @@ export function RecipeDetail() {
   const [shortageOpen, setShortageOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const toolsInitFor = useRef("");
+  const chatContext = useMemo(() => {
+    if (!recipe) return null;
+    const stageKeys: Record<WizardStep, MessageKey> = {
+      servings: "recipeWizardServingsTitle",
+      ingredients: "recipeWizardIngredientsTitle",
+      substitutes: "recipeWizardSubstitutesTitle",
+      tools: "recipeWizardToolsTitle",
+      notes: "recipeWizardNotesTitle",
+      review: "recipeWizardReviewTitle",
+    };
+    return {
+      key: `recipe:${recipe.id}`,
+      kind: "recipe" as const,
+      title: adjusted?.title ?? recipe.name,
+      stage: t(stageKeys[step]),
+      instruction: adjusted?.notes ?? recipe.description,
+      ingredients: (adjusted?.ingredients ?? recipe.ingredients).map((item) => item.name),
+      tools: recipe.required_tools,
+    };
+  }, [recipe, adjusted, step, t]);
+  useEmergencyChatPage(chatContext);
 
   useEffect(() => {
     setStep("servings");

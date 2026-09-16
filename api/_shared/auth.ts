@@ -27,6 +27,11 @@ export function getSupabaseForUser(request: Request): SupabaseClient | null {
 export async function requireUser(request: Request): Promise<
   { supabase: SupabaseClient; user: User } | { error: Response }
 > {
+  const authorization = request.headers.get("Authorization") ?? "";
+  if (!authorization.startsWith("Bearer ")) {
+    return { error: errorResponse("로그인이 필요합니다.", 401) };
+  }
+
   const supabase = getSupabaseForUser(request);
   if (!supabase) {
     return { error: errorResponse("Supabase가 설정되지 않았습니다.", 500) };

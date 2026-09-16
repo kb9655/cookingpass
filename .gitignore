@@ -7,7 +7,6 @@ node_modules/
 !.env.example
 
 # Hosting CLI local state
-.netlify/
 .vercel/
 
 # Build output

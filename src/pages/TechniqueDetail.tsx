@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEmergencyChatPage } from "../components/chat/EmergencyChatProvider";
 import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { MediaSlot } from "../components/common/MediaSlot";
 import { ErrorState, Skeleton } from "../components/common/Feedback";
@@ -158,6 +159,32 @@ export function TechniqueDetail() {
     [detail?.steps.length, guideImage],
   );
   const screen = screens[Math.min(screenIndex, screens.length - 1)] ?? { type: "intro" as const };
+  const chatContext = useMemo(() => {
+    if (!detail) return null;
+    const stepIndex =
+      screen.type === "practice" || screen.type === "feedback" ? screen.stepIndex : null;
+    const currentStep = stepIndex === null ? null : detail.steps[stepIndex] ?? null;
+    const stage =
+      currentStep
+        ? `STEP ${currentStep.step_number}${currentStep.title ? ` · ${currentStep.title}` : ""}`
+        : screen.type === "caution"
+          ? t("techniquesPrecautions")
+          : screen.type === "guide"
+            ? t("techniquesGuideTitle")
+            : screen.type === "summary"
+              ? t("techniquesSummary")
+              : t("techniquesGoals");
+    return {
+      key: `technique:${detail.id}`,
+      kind: "technique" as const,
+      title: detail.name,
+      stage,
+      instruction: currentStep?.instruction ?? detail.description,
+      warnings: detail.precautions,
+      tools: detail.required_tools,
+    };
+  }, [detail, screen, t]);
+  useEmergencyChatPage(chatContext);
 
   function onPickPhoto(stepId: string, file: File | null) {
     setPhotos((current) => ({ ...current, [stepId]: file }));

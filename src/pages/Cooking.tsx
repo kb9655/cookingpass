@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEmergencyChatPage } from "../components/chat/EmergencyChatProvider";
 import { ErrorState } from "../components/common/Feedback";
 import { ProgressBar } from "../components/common/ProgressBar";
 import { CookingStep } from "../components/cooking/CookingStep";
@@ -143,6 +144,27 @@ export function Cooking() {
       ),
     ];
   }, [recipe]);
+  const chatContext = useMemo(() => {
+    if (!recipe) return null;
+    const stage = onSummary
+      ? t("cookSummaryTitle")
+      : onIntro
+        ? t("cookIntro")
+        : `STEP ${step?.step ?? viewIndex + 1} / ${total}`;
+    return {
+      key: `cooking:${id}`,
+      kind: "cooking" as const,
+      title: recipe.title,
+      stage,
+      instruction: onIntro ? recipe.notes ?? "" : step?.instruction ?? "",
+      warnings: step?.warnings ?? [],
+      ingredients: step?.ingredients?.length
+        ? step.ingredients
+        : recipe.ingredients.map((item) => item.name),
+      tools: step?.tools ?? [],
+    };
+  }, [id, recipe, step, viewIndex, total, onIntro, onSummary, t]);
+  useEmergencyChatPage(chatContext);
 
   function goNext() {
     if (!recipe) return;
