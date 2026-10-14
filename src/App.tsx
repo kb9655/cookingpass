@@ -6,9 +6,11 @@ import { Login } from "./pages/Login";
 import { Signup } from "./pages/Signup";
 import { Techniques } from "./pages/Techniques";
 import { TechniqueDetail } from "./pages/TechniqueDetail";
+import { Fridge } from "./pages/Fridge";
 import { Recipes } from "./pages/Recipes";
 import { RecipeDetail } from "./pages/RecipeDetail";
 import { Cooking } from "./pages/Cooking";
+import { Journal } from "./pages/Journal";
 import { Profile } from "./pages/Profile";
 import { SavedRecipe } from "./pages/SavedRecipe";
 import { ShareImport } from "./pages/ShareImport";
@@ -23,6 +25,8 @@ export default function App() {
         <Route path="/techniques" element={<Techniques />} />
         <Route path="/techniques/:id" element={<TechniqueDetail />} />
         <Route path="/recipes" element={<Recipes />} />
+        <Route path="/fridge" element={<Fridge />} />
+        <Route path="/journal" element={<Journal />} />
         <Route path="/recipes/:id" element={<RecipeDetail />} />
         <Route path="/cook/:id" element={<Cooking />} />
         <Route

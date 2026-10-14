@@ -6,18 +6,22 @@ import { StarRating } from "../common/StarRating";
 export function RecipeCard({
   recipe,
   highlight,
+  matchedIngredients,
+  cleared,
 }: {
   recipe: ScoredRecipe;
   highlight?: boolean;
+  matchedIngredients?: string[];
+  cleared?: boolean;
 }) {
   const { t } = useLocale();
 
   return (
     <Link to={`/recipes/${recipe.id}`}>
-      <article
-        className={`card-casual min-w-0 p-4 ${highlight ? "border-accent" : ""}`}
-      >
-        {highlight ? (
+      <article className={`card-casual min-w-0 p-4 ${highlight ? "border-accent" : ""}`}>
+        {cleared ? (
+          <p className="mb-2 text-xs font-semibold text-accent">{t("recipesWorldCleared")}</p>
+        ) : highlight ? (
           <p className="mb-2 text-xs font-semibold text-accent">{t("recipesLinkedSkill")}</p>
         ) : null}
         <h2 className="text-lg font-black break-keep">{recipe.name}</h2>
@@ -27,7 +31,11 @@ export function RecipeCard({
           <span>{t("recipeMinutes", { n: recipe.estimated_minutes })}</span>
         </div>
         <p className="mt-2 text-xs text-muted">{t("recipeBaseServings", { n: recipe.servings })}</p>
-        {typeof recipe.score === "number" && recipe.score > 0 ? (
+        {matchedIngredients?.length ? (
+          <p className="mt-2 text-xs font-semibold text-accent">
+            {t("fridgeUsed", { items: matchedIngredients.join(" · ") })}
+          </p>
+        ) : typeof recipe.score === "number" && recipe.score > 0 ? (
           <p className="mt-2 text-xs text-muted">{t("recipesFit", { n: Math.round(recipe.score * 100) })}</p>
         ) : null}
       </article>

@@ -22,11 +22,11 @@ export function StepTimer({
 
   return (
     <div className="mt-4 rounded-[1.25rem] border border-line bg-card p-4">
-      <p className="text-base text-muted">{t("cookTimerLabel", { n: minutes })}</p>
-      <p className="mt-2 text-center text-5xl font-black tabular-nums tracking-tight">
+      <p className="text-lg text-muted">{t("cookTimerLabel", { n: minutes })}</p>
+      <p className="mt-2 text-center text-6xl font-black tabular-nums tracking-tight">
         {formatTimerClock(remainingMs)}
       </p>
-      {done ? <p className="mt-2 text-center text-lg font-medium text-accent">{t("cookTimerDone")}</p> : null}
+      {done ? <p className="mt-2 text-center text-2xl font-medium text-accent">{t("cookTimerDone")}</p> : null}
       <div className="mt-4 grid grid-cols-3 gap-1 min-[380px]:gap-2">
         <button
           type="button"

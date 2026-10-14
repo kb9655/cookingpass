@@ -30,6 +30,43 @@ body,
   overflow-x: clip;
 }
 
+html[data-view="landscape"] .page,
+html[data-view="landscape"] .page-lesson,
+html[data-view="landscape"] .shell-bar,
+html[data-view="landscape"] .shell-tabs {
+  max-width: 72rem;
+}
+
+html[data-view="landscape"] .list-wide {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+html[data-view="landscape"] .home-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+html[data-forced-rotate="true"],
+html[data-forced-rotate="true"] body,
+html[data-forced-rotate="true"] #root {
+  overflow: hidden;
+}
+
+html[data-forced-rotate="true"] body {
+  position: fixed;
+  top: 0;
+  left: 100%;
+  width: 100dvh;
+  height: 100dvw;
+  max-width: none;
+  transform: rotate(90deg);
+  transform-origin: top left;
+}
+
+html[data-forced-rotate="true"] #root {
+  min-height: 100%;
+  height: 100%;
+}
+
 body {
   margin: 0;
   background: var(--color-canvas);

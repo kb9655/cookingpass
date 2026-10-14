@@ -175,7 +175,7 @@ export function RecipeDetail() {
     return () => {
       active = false;
     };
-  }, [id, locale, t]);
+  }, [id, locale, t, user]);
 
   useEffect(() => {
     if (!recipe || toolsInitFor.current === recipe.id) return;

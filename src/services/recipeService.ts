@@ -212,7 +212,7 @@ export async function getRecipeDetail(id: string, locale: Locale = "ko"): Promis
   };
 }
 
-async function listParsedRecipes(locale: Locale): Promise<ParsedRecipeRecord[]> {
+export async function listParsedRecipes(locale: Locale): Promise<ParsedRecipeRecord[]> {
   const recipes = await listRecipes(locale);
   const details = await Promise.all(recipes.map((recipe) => getRecipeDetail(recipe.id, locale)));
   return details

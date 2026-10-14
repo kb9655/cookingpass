@@ -1,7 +1,4 @@
-export async function fileToJpegBase64(file: File, maxEdge = 1280): Promise<{
-  mime_type: "image/jpeg";
-  data: string;
-}> {
+export async function fileToJpegBlob(file: File, maxEdge = 1280): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
   const width = Math.max(1, Math.round(bitmap.width * scale));
@@ -14,13 +11,20 @@ export async function fileToJpegBase64(file: File, maxEdge = 1280): Promise<{
   context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
 
-  const blob = await new Promise<Blob>((resolve, reject) => {
+  return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (next) => (next ? resolve(next) : reject(new Error("사진을 줄이지 못했습니다."))),
       "image/jpeg",
       0.72,
     );
   });
+}
+
+export async function fileToJpegBase64(file: File, maxEdge = 1280): Promise<{
+  mime_type: "image/jpeg";
+  data: string;
+}> {
+  const blob = await fileToJpegBlob(file, maxEdge);
 
   const data = await blobToBase64(blob);
   if (data.length > 1_200_000) {

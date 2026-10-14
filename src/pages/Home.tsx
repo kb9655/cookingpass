@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, UtensilsCrossed } from "lucide-react";
+import { BookOpen, NotebookText, Refrigerator, UtensilsCrossed } from "lucide-react";
 import { RecentRecipeList } from "../components/recipe/RecentRecipeList";
 import { useLocale } from "../i18n/locale";
 
@@ -10,7 +10,7 @@ export function Home() {
     <main className="page">
       <p className="text-sm font-bold uppercase tracking-[0.18em] text-accent">{t("homeEyebrow")}</p>
 
-      <div className="mt-6 grid min-w-0 gap-4">
+      <div className="home-actions mt-6 grid min-w-0 gap-4">
         <Link
           to="/techniques"
           className="flex min-h-36 flex-col justify-between rounded-[2rem] bg-accent px-5 py-5 text-white transition active:translate-y-0.5 min-[390px]:min-h-44 min-[390px]:px-6 min-[390px]:py-6"
@@ -30,6 +30,26 @@ export function Home() {
           <div>
             <p className="text-3xl font-black break-keep">{t("homeRecipes")}</p>
             <p className="mt-1 text-sm text-muted">{t("homeRecipesLead")}</p>
+          </div>
+        </Link>
+        <Link
+          to="/journal"
+          className="card-casual flex min-h-36 flex-col justify-between px-5 py-5 transition active:translate-y-0.5 min-[390px]:min-h-44 min-[390px]:px-6 min-[390px]:py-6"
+        >
+          <NotebookText className="h-9 w-9 text-accent" strokeWidth={2.2} />
+          <div>
+            <p className="text-3xl font-black break-keep">{t("homeJournal")}</p>
+            <p className="mt-1 text-sm text-muted">{t("homeJournalLead")}</p>
+          </div>
+        </Link>
+        <Link
+          to="/fridge"
+          className="card-casual flex min-h-36 flex-col justify-between px-5 py-5 transition active:translate-y-0.5 min-[390px]:min-h-44 min-[390px]:px-6 min-[390px]:py-6"
+        >
+          <Refrigerator className="h-9 w-9 text-accent" strokeWidth={2.2} />
+          <div>
+            <p className="text-3xl font-black break-keep">{t("homeFridge")}</p>
+            <p className="mt-1 text-sm text-muted">{t("homeFridgeLead")}</p>
           </div>
         </Link>
       </div>

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./hooks/useAuth";
+import { ViewModeProvider } from "./hooks/useViewMode";
 import { LocaleProvider } from "./i18n/locale";
 import { MeasureProvider } from "./i18n/measure";
 import "./index.css";
@@ -13,7 +14,9 @@ createRoot(document.getElementById("root")!).render(
       <AuthProvider>
         <LocaleProvider>
           <MeasureProvider>
-            <App />
+            <ViewModeProvider>
+              <App />
+            </ViewModeProvider>
           </MeasureProvider>
         </LocaleProvider>
       </AuthProvider>

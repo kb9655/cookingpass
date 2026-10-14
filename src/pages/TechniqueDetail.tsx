@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEmergencyChatPage } from "../components/chat/EmergencyChatProvider";
 import { ConfirmDialog } from "../components/common/ConfirmDialog";
@@ -13,7 +13,9 @@ import { getTechniqueGuideImage } from "../data/techniqueGuideImages";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
 import { ApiError, evaluateTechnique } from "../lib/api";
-import { fileToJpegBase64 } from "../lib/compressImage";
+import { fileToJpegBase64, fileToJpegBlob } from "../lib/compressImage";
+import { addJournalPhoto, journalOwnerId } from "../lib/journalStore";
+import { evaluationFromChecks, safetyChecksComplete } from "../lib/selfCheckEval";
 import { isSupabaseConfigured } from "../lib/supabase";
 import {
   getTechniqueDetail,
@@ -39,7 +41,7 @@ type WizardScreen =
   | { type: "summary" };
 
 type StepEvalStatus = "scored" | "skipped" | "invalid";
-type EvalPopup = "no-photo" | "bad-photo" | null;
+type EvalPopup = "bad-photo" | null;
 
 function buildScreens(stepCount: number, hasGuide: boolean): WizardScreen[] {
   const screens: WizardScreen[] = [{ type: "intro" }, { type: "caution" }];
@@ -85,14 +87,13 @@ function passedFromScores(criteria: TechniqueCriterion[], scores: number[]): boo
 
 export function TechniqueDetail() {
   const { id = "" } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useLocale();
   const [detail, setDetail] = useState<TechniqueDetail | null>(null);
   const [status, setStatus] = useState<TechniqueProgressStatus>("unlocked");
   const [progress, setProgress] = useState<TechniqueProgress[]>([]);
-  const [photos, setPhotos] = useState<Record<string, File | null>>({});
   const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const [stepResults, setStepResults] = useState<Record<string, TechniqueEvaluation>>({});
   const [stepStatus, setStepStatus] = useState<Record<string, StepEvalStatus>>({});
   const [popup, setPopup] = useState<EvalPopup>(null);
@@ -102,7 +103,6 @@ export function TechniqueDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [screenIndex, setScreenIndex] = useState(0);
-  const evaluateStarted = useRef<Record<string, boolean>>({});
   const progressSaved = useRef(false);
   const clearedAcked = useRef(false);
 
@@ -119,10 +119,9 @@ export function TechniqueDetail() {
     setPopup(null);
     setRetryClearedOpen(false);
     setResettingCleared(false);
-    setPhotos({});
     setPreviews({});
+    setCheckedIds([]);
     setScreenIndex(0);
-    evaluateStarted.current = {};
     progressSaved.current = false;
     clearedAcked.current = false;
     Promise.all([
@@ -187,7 +186,6 @@ export function TechniqueDetail() {
   useEmergencyChatPage(chatContext);
 
   function onPickPhoto(stepId: string, file: File | null) {
-    setPhotos((current) => ({ ...current, [stepId]: file }));
     setPreviews((current) => {
       const next = { ...current };
       if (current[stepId]) URL.revokeObjectURL(current[stepId]);
@@ -195,10 +193,6 @@ export function TechniqueDetail() {
       else delete next[stepId];
       return next;
     });
-  }
-
-  function stepHasPhoto(step: TechniqueStep | undefined) {
-    return Boolean(step && photos[step.id]);
   }
 
   function canLeave(from: WizardScreen) {
@@ -209,54 +203,55 @@ export function TechniqueDetail() {
     return true;
   }
 
-  function nextIndexAfterPractice(stepIndex: number) {
-    const nextPractice = screens.findIndex(
-      (item) => item.type === "practice" && item.stepIndex === stepIndex + 1,
-    );
-    if (nextPractice >= 0) return nextPractice;
-    return screens.findIndex((item) => item.type === "summary");
+  function applySelfCheck(step: TechniqueStep) {
+    if (!detail) return;
+    const checked = new Set(checkedIds);
+    const result = evaluationFromChecks(detail.criteria, checked);
+    result.headline = result.passed ? t("techniquesPassed") : t("techniquesKeepGoing");
+    result.next_practice = t("techniquesSelfCheckNext");
+    setStepStatus((current) => ({ ...current, [step.id]: "scored" }));
+    setStepResults((current) => ({ ...current, [step.id]: result }));
   }
 
   const canPrev = screenIndex > 0;
   const canNext =
     screenIndex < screens.length - 1 && canLeave(screen) && !saving && screen.type !== "summary";
 
-  async function runEvaluateStep(step: TechniqueStep) {
+  async function savePracticeJournal(file: File) {
     if (!detail) return;
-    if (!user) {
-      navigate("/login", { state: { from: `/techniques/${id}` } });
-      return;
-    }
-    const file = photos[step.id];
-    if (!file) {
-      setError(t("techniquesNeedPhoto"));
-      evaluateStarted.current[step.id] = false;
-      return;
-    }
+    const blob = await fileToJpegBlob(file);
+    const day = new Date().toISOString().slice(0, 10);
+    await addJournalPhoto({
+      ownerId: journalOwnerId(user?.id),
+      kind: "practice",
+      title: detail.name,
+      techniqueId: detail.id,
+      sessionId: `practice:${detail.id}:${day}`,
+      blob,
+    });
+  }
+
+  async function runOptionalPhoto(file: File) {
+    if (!detail || !user) return;
+    const last = detail.steps[detail.steps.length - 1];
+    if (!last) return;
     setSaving(true);
     setError("");
     try {
       const jpeg = await fileToJpegBase64(file);
       const next = await evaluateTechnique({
         techniqueId: detail.id,
-        stepNumber: step.step_number,
+        stepNumber: last.step_number,
         persistProgress: false,
-        photos: [{ step_number: step.step_number, ...jpeg }],
+        photos: [{ step_number: last.step_number, ...jpeg }],
       });
       if (next.image_relevant === false) {
-        setStepStatus((current) => ({ ...current, [step.id]: "invalid" }));
-        setStepResults((current) => {
-          const copy = { ...current };
-          delete copy[step.id];
-          return copy;
-        });
         setPopup("bad-photo");
         return;
       }
-      setStepStatus((current) => ({ ...current, [step.id]: "scored" }));
-      setStepResults((current) => ({ ...current, [step.id]: next }));
+      setStepResults((current) => ({ ...current, [last.id]: next }));
+      setStepStatus((current) => ({ ...current, [last.id]: "scored" }));
     } catch (err) {
-      evaluateStarted.current[step.id] = false;
       const message =
         err instanceof ApiError
           ? err.message
@@ -268,18 +263,6 @@ export function TechniqueDetail() {
       setSaving(false);
     }
   }
-
-  useEffect(() => {
-    if (screen.type !== "feedback" || !detail) return;
-    const step = detail.steps[screen.stepIndex];
-    if (!step) return;
-    if (stepStatus[step.id] === "skipped" || stepStatus[step.id] === "invalid") return;
-    if (!photos[step.id]) return;
-    if (stepResults[step.id] || evaluateStarted.current[step.id]) return;
-    evaluateStarted.current[step.id] = true;
-    void runEvaluateStep(step);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, detail, stepResults, stepStatus, photos]);
 
   const acceptedResults = useMemo(() => {
     if (!detail) return [];
@@ -370,17 +353,12 @@ export function TechniqueDetail() {
     }
     if (screen.type === "practice" && detail) {
       const current = detail.steps[screen.stepIndex];
-      if (current && !stepHasPhoto(current)) {
-        setStepStatus((value) => ({ ...value, [current.id]: "skipped" }));
-        setStepResults((value) => {
-          const next = { ...value };
-          delete next[current.id];
-          return next;
-        });
-        setPopup("no-photo");
-        const dest = nextIndexAfterPractice(screen.stepIndex);
-        if (dest >= 0) setScreenIndex(dest);
-        return;
+      if (current) {
+        if (!safetyChecksComplete(detail.criteria, new Set(checkedIds))) {
+          setError(t("techniquesNeedSafety"));
+          return;
+        }
+        applySelfCheck(current);
       }
     }
     goTo(screenIndex + 1);
@@ -390,7 +368,6 @@ export function TechniqueDetail() {
     if (!detail || (screen.type !== "feedback" && screen.type !== "practice")) return;
     const step = detail.steps[screen.stepIndex];
     if (!step) return;
-    evaluateStarted.current[step.id] = false;
     setStepStatus((current) => {
       const next = { ...current };
       delete next[step.id];
@@ -529,8 +506,8 @@ export function TechniqueDetail() {
   } else if (screen.type === "caution") {
     body = (
       <div>
-        <h2 className="text-2xl font-semibold">{t("techniquesPrecautions")}</h2>
-        <ul className="mt-4 space-y-3 text-sm leading-relaxed text-muted">
+        <h2 className="text-3xl font-black tracking-tight">{t("techniquesPrecautions")}</h2>
+        <ul className="mt-4 space-y-4 text-2xl font-medium leading-snug text-ink">
           {detail.precautions.map((item) => (
             <li key={item}>{item}</li>
           ))}
@@ -540,9 +517,9 @@ export function TechniqueDetail() {
   } else if (screen.type === "guide" && guideImage) {
     body = (
       <section>
-        <p className="text-xs font-medium text-muted">{t("techniquesExplainStep")}</p>
-        <h2 className="mt-2 text-2xl font-semibold">{t("techniquesGuideTitle")}</h2>
-        <p className="mt-3 text-sm leading-relaxed text-muted">{t("techniquesGuideLead")}</p>
+        <p className="text-base font-medium text-muted">{t("techniquesExplainStep")}</p>
+        <h2 className="mt-2 text-3xl font-black tracking-tight">{t("techniquesGuideTitle")}</h2>
+        <p className="mt-3 text-2xl font-medium leading-snug text-ink">{t("techniquesGuideLead")}</p>
         <div className="mt-5">
           <GuideImage src={guideImage.src} alt={guideImage.alt} />
         </div>
@@ -551,55 +528,52 @@ export function TechniqueDetail() {
   } else if (screen.type === "practice" && step) {
     body = (
       <div>
-        <p className="text-xs text-muted">STEP {step.step_number}</p>
-        {step.title ? <h2 className="mt-2 text-2xl font-semibold">{step.title}</h2> : null}
-        <p className="mt-3 text-sm leading-relaxed text-muted">{step.instruction}</p>
+        <p className="text-lg font-semibold tracking-tight">STEP {step.step_number}</p>
+        {step.title ? <h2 className="mt-2 text-3xl font-black tracking-tight">{step.title}</h2> : null}
+        <p className="mt-3 text-3xl font-semibold leading-snug break-keep text-ink">{step.instruction}</p>
         {step.step_number === detail.steps.length && step.media ? (
           <div className="mt-4">
             <MediaSlot media={step.media} label={step.title ?? `${detail.name} ${step.step_number}`} />
           </div>
         ) : null}
-        {detail.capture_hint ? (
-          <p className="mt-4 rounded-2xl border border-line bg-card px-4 py-3 text-sm text-muted">
-            {detail.capture_hint}
-          </p>
-        ) : null}
         {detail.target_size ? (
-          <p className="mt-2 text-sm text-muted">{t("techniquesTargetSize", { size: detail.target_size })}</p>
+          <p className="mt-3 text-xl text-ink">{t("techniquesTargetSize", { size: detail.target_size })}</p>
         ) : null}
         {detail.criteria.length > 0 ? (
-          <div className="card-casual mt-4 p-4">
-            <p className="text-sm font-semibold">{t("techniquesCriteria")}</p>
-            <ol className="mt-3 space-y-2">
-              {detail.criteria.map((item) => (
-                <li key={item.id}>
-                  <p className="text-sm font-medium">
-                    {item.sort_order}. {item.name}
-                    {item.is_safety ? (
-                      <span className="ml-2 text-xs text-red-700">{t("techniquesSafety")}</span>
-                    ) : null}
-                  </p>
-                  <p className="text-xs text-muted">{item.check_hint}</p>
-                </li>
-              ))}
-            </ol>
+          <div className="card-casual mt-5 p-4">
+            <p className="text-xl font-black">{t("techniquesSelfCheck")}</p>
+            <ul className="mt-4 space-y-3">
+              {detail.criteria.map((item) => {
+                const checked = checkedIds.includes(item.id);
+                return (
+                  <li key={item.id}>
+                    <label className="flex min-h-14 items-start gap-3">
+                      <input
+                        type="checkbox"
+                        className="mt-2 size-6 shrink-0"
+                        checked={checked}
+                        onChange={() => {
+                          setCheckedIds((current) =>
+                            checked ? current.filter((id) => id !== item.id) : [...current, item.id],
+                          );
+                          setError("");
+                        }}
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-xl font-bold text-ink">
+                          {item.name}
+                          {item.is_safety ? (
+                            <span className="ml-2 text-base font-semibold text-red-700">{t("techniquesSafety")}</span>
+                          ) : null}
+                        </span>
+                        <span className="mt-1 block text-lg text-ink">{item.check_hint}</span>
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-        ) : null}
-        <label className="btn-secondary mt-4 w-full cursor-pointer">
-          <input
-            className="sr-only"
-            type="file"
-            accept="image/*"
-            onChange={(event) => onPickPhoto(step.id, event.target.files?.[0] ?? null)}
-          />
-          {previews[step.id] ? t("techniquesChangePhoto") : t("techniquesPickPhoto")}
-        </label>
-        {previews[step.id] ? (
-          <img
-            src={previews[step.id]}
-            alt={`${step.step_number}`}
-            className="mt-3 w-full rounded-[1.25rem] object-cover"
-          />
         ) : null}
       </div>
     );
@@ -696,6 +670,29 @@ export function TechniqueDetail() {
         </ul>
         {lastResult ? <p className="mt-4 text-sm text-muted">{lastResult.next_practice}</p> : null}
 
+        <div className="mt-6">
+          <p className="text-sm font-semibold">{t("techniquesOptionalPhoto")}</p>
+          <p className="mt-1 text-sm text-muted">{t("techniquesOptionalPhotoLead")}</p>
+          {detail.capture_hint ? <p className="mt-2 text-sm text-muted">{detail.capture_hint}</p> : null}
+          <label className="btn-secondary mt-3 w-full cursor-pointer">
+            <input
+              className="sr-only"
+              type="file"
+              accept="image/*"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                const last = detail.steps[detail.steps.length - 1];
+                if (last) onPickPhoto(last.id, file);
+                if (file) {
+                  void savePracticeJournal(file).catch(() => undefined);
+                  if (user) void runOptionalPhoto(file);
+                }
+              }}
+            />
+            {t("techniquesPickPhotoAlbum")}
+          </label>
+        </div>
+
         <h3 className="mt-8 text-lg font-semibold">{t("techniquesRecommend")}</h3>
         {unlearnedRelated.length > 0 ? (
           <div className="mt-4 grid grid-cols-3 gap-1 min-[380px]:gap-2">
@@ -750,7 +747,7 @@ export function TechniqueDetail() {
             </button>
           ) : null}
           <button
-            className="btn-primary min-h-11 flex-1"
+            className="btn-primary min-h-14 flex-1 text-lg"
             type="button"
             disabled={!canNext || saving}
             onClick={goForward}
@@ -760,10 +757,7 @@ export function TechniqueDetail() {
         </div>
       )}
       {popup ? (
-        <ConfirmDialog
-          title={popup === "no-photo" ? t("techniquesSkipNoPhoto") : t("techniquesSkipBadPhoto")}
-          onClose={() => setPopup(null)}
-        />
+        <ConfirmDialog title={t("techniquesSkipBadPhoto")} onClose={() => setPopup(null)} />
       ) : null}
       {retryClearedOpen ? (
         <ConfirmDialog

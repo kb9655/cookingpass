@@ -22,6 +22,7 @@
     "@fontsource/outfit": "^5.2.8",
     "@supabase/supabase-js": "^2.57.4",
     "ai": "^7.0.102",
+    "jszip": "^3.10.2",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

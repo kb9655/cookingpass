@@ -101,6 +101,24 @@ export async function flushPendingCookingSave(userId: string): Promise<void> {
   clearPendingCookingSave();
 }
 
+export async function listCompletedRecipeMarks(userId: string): Promise<Array<{ id: string; difficulty: number }>> {
+  const { data, error } = await requireSupabase()
+    .from("cooking_history")
+    .select("recipe_id, recipes(difficulty)")
+    .eq("user_id", userId)
+    .eq("completed", true);
+  if (error) throw error;
+  const marks = new Map<string, number>();
+  for (const row of data ?? []) {
+    const recipe = Array.isArray(row.recipes) ? row.recipes[0] : row.recipes;
+    const difficulty = Math.max(1, Math.round(Number((recipe as { difficulty?: number } | null)?.difficulty ?? 1)));
+    const id = String(row.recipe_id ?? "");
+    if (!id) continue;
+    marks.set(id, Math.max(marks.get(id) ?? 1, difficulty));
+  }
+  return [...marks.entries()].map(([id, difficulty]) => ({ id, difficulty }));
+}
+
 export async function sumCompletedCookingStars(userId: string): Promise<number> {
   const { data, error } = await requireSupabase()
     .from("cooking_history")

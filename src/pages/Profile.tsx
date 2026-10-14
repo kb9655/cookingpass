@@ -277,6 +277,13 @@ export function Profile() {
           <RecentRecipeList title={t("profileRecent")} />
 
           <section className="mt-6">
+            <Link to="/journal" className="card-casual flex items-center justify-between gap-3 px-4 py-4">
+              <span className="text-lg font-black">{t("journalTitle")}</span>
+              <span className="text-sm font-bold text-accent">{t("journalOpen")}</span>
+            </Link>
+          </section>
+
+          <section className="mt-6">
             <h2 className="text-lg font-black">{t("profileHistory")}</h2>
             {history.length === 0 ? (
               <div className="mt-3">

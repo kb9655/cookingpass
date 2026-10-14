@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { ChefHat, House, UserRound, UtensilsCrossed } from "lucide-react";
+import { ChefHat, House, Refrigerator, UserRound, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
+import { useViewMode } from "../../hooks/useViewMode";
 import { useLocale } from "../../i18n/locale";
 import { playerLevelFromClears } from "../../lib/playerLevel";
 import { isSupabaseConfigured } from "../../lib/supabase";
@@ -16,6 +17,7 @@ export function AppShell() {
   const location = useLocation();
   const { configured, user } = useAuth();
   const { locale, t } = useLocale();
+  const { mode, toggle } = useViewMode();
   const [cleared, setCleared] = useState(0);
   const [cookingStars, setCookingStars] = useState(0);
   const isAuthPage =
@@ -68,6 +70,7 @@ export function AppShell() {
     { to: "/", label: t("navHome"), icon: House, end: true },
     { to: "/techniques", label: t("navTechniques"), icon: ChefHat },
     { to: "/recipes", label: t("navRecipes"), icon: UtensilsCrossed },
+    { to: "/fridge", label: t("navFridge"), icon: Refrigerator },
     { to: "/profile", label: t("navProfile"), icon: UserRound },
   ];
 
@@ -80,12 +83,21 @@ export function AppShell() {
           </div>
         ) : null}
         <header className="sticky top-0 z-20 border-b border-line bg-card/95 pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur-sm">
-          <div className="mx-auto flex min-h-16 max-w-lg items-center justify-between gap-3 px-4">
+          <div className="shell-bar mx-auto flex min-h-16 max-w-lg items-center justify-between gap-3 px-4">
             <Link to="/" className="min-w-0 truncate text-sm font-black tracking-tight">
               Cooking Pass
             </Link>
+            <div className="flex min-w-0 shrink-0 items-center gap-2">
+            <button
+              type="button"
+              className="xp-chip shrink-0"
+              aria-pressed={mode === "landscape"}
+              onClick={toggle}
+            >
+              {mode === "landscape" ? t("viewPortrait") : t("viewLandscape")}
+            </button>
             {user ? (
-              <Link to="/profile" className="xp-chip max-w-[62%] shrink-0 overflow-hidden whitespace-nowrap" aria-label={t("navProfile")}>
+              <Link to="/profile" className="xp-chip max-w-[46%] shrink-0 overflow-hidden whitespace-nowrap" aria-label={t("navProfile")}>
                 <span className="text-accent">{t("profileLevel", { n: player.level })}</span>
                 <span className="hidden text-muted min-[360px]:inline">
                   {t("profileXp", { current: player.xpInLevel, next: player.xpToNext })}
@@ -96,6 +108,7 @@ export function AppShell() {
                 {t("headerLogin")}
               </Link>
             )}
+            </div>
           </div>
         </header>
         <div className={hideTabs ? "min-w-0 flex-1" : "min-w-0 flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))]"}>
@@ -104,7 +117,7 @@ export function AppShell() {
         {isAuthPage ? null : <RecommendPrompt />}
         {hideTabs ? null : (
           <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] shadow-[0_-6px_0_rgb(184_214_194_/_0.85)] backdrop-blur-sm">
-            <ul className="mx-auto grid max-w-lg grid-cols-4">
+            <ul className="shell-tabs mx-auto grid max-w-lg grid-cols-5">
               {tabs.map((tab) => (
                 <li key={tab.to} className="min-w-0">
                   <NavLink

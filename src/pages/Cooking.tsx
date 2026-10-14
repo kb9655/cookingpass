@@ -12,6 +12,9 @@ import { useAuth } from "../hooks/useAuth";
 import { useWaitTimer } from "../hooks/useWaitTimer";
 import { useLocale } from "../i18n/locale";
 import { setSkipTimerLeaveConfirm, shouldConfirmTimerLeave } from "../lib/cookTimer";
+import { fileToJpegBlob } from "../lib/compressImage";
+import { addJournalPhoto, journalOwnerId, JournalQuotaError } from "../lib/journalStore";
+import { recordGuestClearedRecipe } from "../lib/recipeWorlds";
 import { XP_PER_CLEAR, XP_PER_STAR, cookingXpFromDifficulty, playerLevelFromXp } from "../lib/playerLevel";
 import { isSupabaseConfigured } from "../lib/supabase";
 import {
@@ -57,6 +60,10 @@ export function Cooking() {
   const [savingRecipe, setSavingRecipe] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [dontAskLeave, setDontAskLeave] = useState(false);
+  const [worldNote, setWorldNote] = useState("");
+  const [journalNote, setJournalNote] = useState("");
+  const [journalBusy, setJournalBusy] = useState(false);
+  const cookSessionId = useMemo(() => `cook:${id}:${startedAt}`, [id, startedAt]);
   const finishedRef = useRef(false);
   const draftRef = useRef<CookingDraft | null>(null);
   const { timer: waitTimer, start: startWait, pause: pauseWait, reset: resetWait, clear: clearWait } =
@@ -242,6 +249,8 @@ export function Cooking() {
           saveRecipe: false,
         });
       }
+      recordGuestClearedRecipe(id, difficulty);
+      setWorldNote(t("cookSummaryWorldStay"));
       finishedRef.current = true;
       clearCookingSession(id);
       setOnSummary(true);
@@ -281,6 +290,28 @@ export function Cooking() {
     }
   }
 
+  async function addCookPhoto(file: File | null) {
+    if (!file || !recipe) return;
+    setJournalBusy(true);
+    setJournalNote("");
+    try {
+      const blob = await fileToJpegBlob(file);
+      await addJournalPhoto({
+        ownerId: journalOwnerId(user?.id),
+        kind: "cook",
+        title: recipe.title,
+        recipeId: id,
+        sessionId: cookSessionId,
+        blob,
+      });
+      setJournalNote(t("cookJournalAdded"));
+    } catch (err) {
+      setJournalNote(err instanceof JournalQuotaError ? t("journalQuota") : t("journalSaveError"));
+    } finally {
+      setJournalBusy(false);
+    }
+  }
+
   if (!ready || !recipe || (!step && !onSummary)) {
     return (
       <main className="page">
@@ -296,6 +327,22 @@ export function Cooking() {
         <h1 className="mt-2 text-4xl font-semibold tracking-tight break-keep">{recipe.title}</h1>
         <p className="mt-4 text-3xl font-black text-accent">{t("cookSummaryXp", { n: gainedXp })}</p>
         {barReady ? <ProgressBar value={toPercent} /> : <ProgressBar value={fromPercent} />}
+        {worldNote ? <p className="mt-3 text-lg font-semibold text-accent">{worldNote}</p> : null}
+        <label className="btn-secondary mt-6 w-full cursor-pointer">
+          <input
+            className="sr-only"
+            type="file"
+            accept="image/*"
+            disabled={journalBusy}
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              event.target.value = "";
+              void addCookPhoto(file);
+            }}
+          />
+          {journalBusy ? t("pageLoading") : t("cookJournalPhoto")}
+        </label>
+        {journalNote ? <p className="mt-2 text-sm text-muted">{journalNote}</p> : null}
         <label className="mt-6 flex items-start gap-3 text-lg">
           <input
             type="checkbox"
@@ -366,8 +413,8 @@ export function Cooking() {
             </div>
           ) : (
             <div>
-              <p className="text-base font-medium text-muted">{t("cookExplainStep")}</p>
-              <p className="mt-1 text-xl font-semibold tracking-tight">STEP {step.step}</p>
+              <p className="text-lg font-medium text-muted">{t("cookExplainStep")}</p>
+              <p className="mt-1 text-3xl font-black tracking-tight">STEP {step.step}</p>
               <div className="mt-3">
                 <CookingStep
                   step={step}
@@ -413,7 +460,7 @@ export function Cooking() {
         />
       ) : null}
       <button
-        className="btn-primary mb-2 min-h-14 w-full text-lg"
+        className="btn-primary mb-2 min-h-16 w-full text-xl"
         type="button"
         disabled={saving || (!canNext && !isLastView)}
         onClick={isLastView ? () => void complete() : goNext}

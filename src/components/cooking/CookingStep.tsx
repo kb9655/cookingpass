@@ -27,18 +27,18 @@ export function CookingStep({
 
   return (
     <section>
-      <p className="text-2xl font-medium leading-snug break-keep">{localizeInstruction(step.instruction, prefs)}</p>
+      <p className="text-3xl font-semibold leading-snug break-keep text-ink">{localizeInstruction(step.instruction, prefs)}</p>
       {techniqueName ? (
-        <p className="mt-4 inline-flex items-center gap-2 text-lg text-accent">
-          <Lightbulb className="h-5 w-5 shrink-0" strokeWidth={1.75} />
+        <p className="mt-4 inline-flex items-center gap-2 text-xl font-semibold text-accent">
+          <Lightbulb className="h-6 w-6 shrink-0" strokeWidth={1.75} />
           {techniqueName} 기술
         </p>
       ) : null}
       {step.ingredients?.length ? (
-        <p className="mt-3 text-lg text-ink">재료: {step.ingredients.join(", ")}</p>
+        <p className="mt-3 text-2xl font-medium text-ink">재료: {step.ingredients.join(", ")}</p>
       ) : null}
       {step.tools?.length ? (
-        <p className="mt-1 text-lg text-ink">도구: {step.tools.join(", ")}</p>
+        <p className="mt-1 text-2xl font-medium text-ink">도구: {step.tools.join(", ")}</p>
       ) : null}
       {timed ? (
         <StepTimer
@@ -52,10 +52,10 @@ export function CookingStep({
         />
       ) : null}
       {step.temperature ? (
-        <p className="mt-3 text-lg text-ink">온도: {step.temperature}</p>
+        <p className="mt-3 text-2xl font-medium text-ink">온도: {step.temperature}</p>
       ) : null}
       {step.warnings?.length ? (
-        <p className="mt-3 text-lg font-medium text-red-700">{step.warnings.join(" ")}</p>
+        <p className="mt-3 text-2xl font-semibold text-red-700">{step.warnings.join(" ")}</p>
       ) : null}
     </section>
   );

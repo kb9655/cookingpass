@@ -4,10 +4,17 @@ import { RecipeCard } from "../components/recipe/RecipeCard";
 import { EmptyState, ErrorState, PageLoader } from "../components/common/Feedback";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
+import {
+  loadGuestClearedRecipes,
+  RECIPE_WORLD_MAX,
+  recipeWorld,
+  type ClearedRecipeMark,
+} from "../lib/recipeWorlds";
+import { isSupabaseConfigured } from "../lib/supabase";
+import { listCompletedRecipeMarks } from "../services/historyService";
 import { listRecipeCategories, listScoredRecipes, recipeMatchesSearch } from "../services/recipeService";
 import { getTechniqueProgress } from "../services/techniqueService";
 import { listUserIngredients } from "../services/ingredientService";
-import { isSupabaseConfigured } from "../lib/supabase";
 import type { ScoredRecipe } from "../types/recipe";
 
 export function Recipes() {
@@ -19,6 +26,8 @@ export function Recipes() {
   const [categories, setCategories] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
+  const [world, setWorld] = useState(1);
+  const [clears, setClears] = useState<ClearedRecipeMark[]>(() => loadGuestClearedRecipes());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [reloadToken, setReloadToken] = useState(0);
@@ -32,11 +41,14 @@ export function Recipes() {
     const pantryTask = listUserIngredients(locale);
     const progressTask =
       user && isSupabaseConfigured ? getTechniqueProgress(user.id) : Promise.resolve([]);
+    const clearsTask =
+      user && isSupabaseConfigured ? listCompletedRecipeMarks(user.id) : Promise.resolve(loadGuestClearedRecipes());
 
-    Promise.all([listRecipeCategories(locale), pantryTask, progressTask])
-      .then(([nextCategories, pantry, progress]) => {
+    Promise.all([listRecipeCategories(locale), pantryTask, progressTask, clearsTask])
+      .then(([nextCategories, pantry, progress, nextClears]) => {
         if (cancelled) return [] as ScoredRecipe[];
         setCategories(nextCategories);
+        setClears(nextClears);
         return listScoredRecipes({
           locale,
           progress,
@@ -64,10 +76,13 @@ export function Recipes() {
   }, [user, profile, focusTechniqueId, locale, t, reloadToken]);
 
   const visible = useMemo(
-    () => recipes.filter((recipe) => recipeMatchesSearch(recipe, query, category)),
-    [recipes, query, category],
+    () =>
+      recipes.filter(
+        (recipe) => recipeWorld(recipe.difficulty) === world && recipeMatchesSearch(recipe, query, category),
+      ),
+    [recipes, query, category, world],
   );
-
+  const clearedIds = useMemo(() => new Set(clears.map((item) => item.id)), [clears]);
   const highlighted = useMemo(
     () => (focusTechniqueId ? visible.filter((item) => item.relatedness === 1) : []),
     [visible, focusTechniqueId],
@@ -77,6 +92,21 @@ export function Recipes() {
     <main className="page">
       <h1 className="text-3xl font-black tracking-tight">{t("recipesTitle")}</h1>
       <p className="mt-2 text-sm text-muted">{t("recipesLead")}</p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {Array.from({ length: RECIPE_WORLD_MAX }, (_, index) => index + 1).map((item) => (
+          <button
+            key={item}
+            type="button"
+            className={`min-h-11 rounded-full px-3 text-sm font-bold ${
+              world === item ? "bg-accent text-white" : "border border-line bg-card text-ink"
+            }`}
+            onClick={() => setWorld(item)}
+          >
+            {t("recipesWorld", { n: item })}
+          </button>
+        ))}
+      </div>
 
       <div className="mt-5 space-y-3">
         <div className="field">
@@ -110,7 +140,7 @@ export function Recipes() {
           <ErrorState message={error} onRetry={() => setReloadToken((current) => current + 1)} />
         </div>
       ) : null}
-      <div className="mt-6 grid gap-3">
+      <div className="mt-6 grid list-wide gap-3">
         {loading ? (
           <PageLoader label={t("pageLoading")} />
         ) : visible.length === 0 ? (
@@ -121,6 +151,7 @@ export function Recipes() {
               key={recipe.id}
               recipe={recipe}
               highlight={highlighted.some((item) => item.id === recipe.id)}
+              cleared={clearedIds.has(recipe.id)}
             />
           ))
         )}
