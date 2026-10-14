@@ -3,6 +3,7 @@ import { amountsClose, roundAmount, scaleAmount } from "../../lib/formatAmount";
 import {
   convertAmount,
   formatDisplayedMeasure,
+  roundDisplay,
   toDisplayMeasure,
 } from "../../lib/formatMeasure";
 import { formatUnit } from "../../lib/formatUnit";
@@ -30,7 +31,7 @@ function recipeNeed(
   baseServings: number,
 ): number {
   const row = ingredients.find((item) => item.ingredient_id === ingredientId);
-  return roundAmount(scaleAmount(row?.amount ?? 0, servings, baseServings));
+  return scaleAmount(row?.amount ?? 0, servings, baseServings);
 }
 
 function toChecks(
@@ -166,7 +167,7 @@ export function IngredientCheckList({
             const sourceUnit = recipeRow?.unit || item.unit;
             const need = recipeNeed(ingredients, item.ingredient_id, servings, baseServings);
             const needDisplay = toDisplayMeasure(need, sourceUnit, prefs);
-            const haveValue = roundAmount(
+            const haveValue = roundDisplay(
               convertAmount(item.amount, item.unit || sourceUnit, needDisplay.unit),
             );
             return (

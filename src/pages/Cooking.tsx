@@ -2,12 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEmergencyChatPage } from "../components/chat/EmergencyChatProvider";
+import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { ErrorState } from "../components/common/Feedback";
 import { ProgressBar } from "../components/common/ProgressBar";
 import { CookingStep } from "../components/cooking/CookingStep";
+import { CookingTimerDock } from "../components/cooking/CookingTimerDock";
 import { LessonProgress } from "../components/technique/LessonProgress";
 import { useAuth } from "../hooks/useAuth";
+import { useWaitTimer } from "../hooks/useWaitTimer";
 import { useLocale } from "../i18n/locale";
+import { setSkipTimerLeaveConfirm, shouldConfirmTimerLeave } from "../lib/cookTimer";
 import { XP_PER_CLEAR, XP_PER_STAR, cookingXpFromDifficulty, playerLevelFromXp } from "../lib/playerLevel";
 import { isSupabaseConfigured } from "../lib/supabase";
 import {
@@ -51,8 +55,14 @@ export function Cooking() {
   const [saveRecipe, setSaveRecipe] = useState(false);
   const [librarySaved, setLibrarySaved] = useState(false);
   const [savingRecipe, setSavingRecipe] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [dontAskLeave, setDontAskLeave] = useState(false);
   const finishedRef = useRef(false);
   const draftRef = useRef<CookingDraft | null>(null);
+  const { timer: waitTimer, start: startWait, pause: pauseWait, reset: resetWait, clear: clearWait } =
+    useWaitTimer(recipe?.title || t("cookTimerNotifyTitle"), (stepLabel) =>
+      t("cookTimerNotifyBody", { step: stepLabel }),
+    );
 
   useEffect(() => {
     setReady(false);
@@ -166,7 +176,7 @@ export function Cooking() {
   }, [id, recipe, step, viewIndex, total, onIntro, onSummary, t]);
   useEmergencyChatPage(chatContext);
 
-  function goNext() {
+  function advanceNext() {
     if (!recipe) return;
     if (onIntro) {
       setOnIntro(false);
@@ -175,6 +185,19 @@ export function Cooking() {
     const nextView = Math.min(total - 1, viewIndex + 1);
     setViewIndex(nextView);
     if (nextView >= progressIndex) setProgressIndex(nextView);
+  }
+
+  function goNext() {
+    if (!recipe || onIntro) {
+      advanceNext();
+      return;
+    }
+    if (waitTimer?.running && waitTimer.stepIndex === viewIndex && shouldConfirmTimerLeave()) {
+      setDontAskLeave(false);
+      setLeaveOpen(true);
+      return;
+    }
+    advanceNext();
   }
 
   function goPrev() {
@@ -197,6 +220,7 @@ export function Cooking() {
     setGainedXp(gained);
 
     try {
+      clearWait();
       const durationSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
       if (user) {
         await saveCookingHistory({
@@ -268,11 +292,11 @@ export function Cooking() {
   if (onSummary) {
     return (
       <main className="page pb-8">
-        <p className="text-xs font-medium text-muted">{t("cookSummaryTitle")}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight break-keep">{recipe.title}</h1>
-        <p className="mt-4 text-2xl font-black text-accent">{t("cookSummaryXp", { n: gainedXp })}</p>
+        <p className="text-base font-medium text-muted">{t("cookSummaryTitle")}</p>
+        <h1 className="mt-2 text-4xl font-semibold tracking-tight break-keep">{recipe.title}</h1>
+        <p className="mt-4 text-3xl font-black text-accent">{t("cookSummaryXp", { n: gainedXp })}</p>
         {barReady ? <ProgressBar value={toPercent} /> : <ProgressBar value={fromPercent} />}
-        <label className="mt-6 flex items-start gap-3 text-sm">
+        <label className="mt-6 flex items-start gap-3 text-lg">
           <input
             type="checkbox"
             className="mt-1"
@@ -332,22 +356,37 @@ export function Cooking() {
         <div className="min-w-0 flex-1 overflow-y-auto py-4">
           {onIntro ? (
             <div>
-              <p className="text-xs font-medium text-muted">{t("cookIntro")}</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight break-keep">{recipe.title}</h1>
-              <p className="mt-3 text-sm text-muted">{t("recipeServings", { n: recipe.servings })}</p>
-              {recipe.notes ? <p className="mt-4 text-sm leading-relaxed text-muted">{recipe.notes}</p> : null}
-              <Link to={`/recipes/${id}`} className="mt-6 inline-block text-sm font-medium text-accent">
+              <p className="text-base font-medium text-muted">{t("cookIntro")}</p>
+              <h1 className="mt-2 text-4xl font-semibold tracking-tight break-keep">{recipe.title}</h1>
+              <p className="mt-3 text-lg text-muted">{t("recipeServings", { n: recipe.servings })}</p>
+              {recipe.notes ? <p className="mt-4 text-xl leading-relaxed text-ink">{recipe.notes}</p> : null}
+              <Link to={`/recipes/${id}`} className="mt-6 inline-block text-base font-medium text-accent">
                 {t("cookLeave")}
               </Link>
             </div>
           ) : (
             <div>
-              <p className="text-xs font-medium text-muted">{t("cookExplainStep")}</p>
-              <p className="mt-1 text-xs text-muted">STEP {step.step}</p>
+              <p className="text-base font-medium text-muted">{t("cookExplainStep")}</p>
+              <p className="mt-1 text-xl font-semibold tracking-tight">STEP {step.step}</p>
               <div className="mt-3">
                 <CookingStep
                   step={step}
                   techniqueName={step.technique_id ? techniqueNames[step.technique_id] : undefined}
+                  waitTimer={waitTimer?.stepIndex === viewIndex ? waitTimer : null}
+                  onTimerStart={() => {
+                    startWait({
+                      stepIndex: viewIndex,
+                      stepNumber: step.step,
+                      label: step.technique_id ? techniqueNames[step.technique_id] ?? "" : "",
+                      minutes: step.time_minutes ?? 0,
+                    });
+                  }}
+                  onTimerPause={() => {
+                    if (waitTimer?.stepIndex === viewIndex) pauseWait();
+                  }}
+                  onTimerReset={() => {
+                    if (waitTimer?.stepIndex === viewIndex) resetWait();
+                  }}
                 />
               </div>
             </div>
@@ -364,14 +403,47 @@ export function Cooking() {
         </button>
       </div>
       {error ? <p className="mb-2 text-sm text-red-700">{error}</p> : null}
+      {waitTimer ? (
+        <CookingTimerDock
+          timer={waitTimer}
+          onOpenStep={(stepIndex) => {
+            setOnIntro(false);
+            setViewIndex(stepIndex);
+          }}
+        />
+      ) : null}
       <button
-        className="btn-primary mb-2 min-h-11 w-full"
+        className="btn-primary mb-2 min-h-14 w-full text-lg"
         type="button"
         disabled={saving || (!canNext && !isLastView)}
         onClick={isLastView ? () => void complete() : goNext}
       >
         {saving ? t("cookSaving") : isLastView ? t("cookDone") : t("cookNext")}
       </button>
+      {leaveOpen ? (
+        <ConfirmDialog
+          title={t("cookTimerLeaveTitle")}
+          confirmLabel={t("cookTimerLeaveConfirm")}
+          cancelLabel={t("cookTimerLeaveStay")}
+          onConfirm={() => {
+            if (dontAskLeave) setSkipTimerLeaveConfirm();
+            setLeaveOpen(false);
+            advanceNext();
+          }}
+          onClose={() => setLeaveOpen(false)}
+        >
+          <p>{t("cookTimerLeaveLead")}</p>
+          <label className="mt-3 flex items-start gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={dontAskLeave}
+              onChange={(event) => setDontAskLeave(event.target.checked)}
+            />
+            <span>{t("cookTimerLeaveDontAsk")}</span>
+          </label>
+        </ConfirmDialog>
+      ) : null}
     </main>
   );
 }

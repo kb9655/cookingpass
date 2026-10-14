@@ -1,82 +1,60 @@
-import { useEffect, useRef, useState } from "react";
+import { formatTimerClock } from "../../lib/cookTimer";
 import { useLocale } from "../../i18n/locale";
 
-function formatClock(ms: number): string {
-  const totalSec = Math.max(0, Math.ceil(ms / 1000));
-  const minutes = Math.floor(totalSec / 60);
-  const seconds = totalSec % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
-export function StepTimer({ minutes }: { minutes: number }) {
+export function StepTimer({
+  minutes,
+  remainingMs,
+  running,
+  done,
+  onStart,
+  onPause,
+  onReset,
+}: {
+  minutes: number;
+  remainingMs: number;
+  running: boolean;
+  done: boolean;
+  onStart: () => void;
+  onPause: () => void;
+  onReset: () => void;
+}) {
   const { t } = useLocale();
-  const totalMs = Math.max(0, Math.round(minutes * 60 * 1000));
-  const [remainingMs, setRemainingMs] = useState(totalMs);
-  const [running, setRunning] = useState(false);
-  const endAtRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    setRemainingMs(totalMs);
-    setRunning(false);
-    endAtRef.current = null;
-  }, [totalMs]);
-
-  useEffect(() => {
-    if (!running) return;
-    const id = window.setInterval(() => {
-      const endAt = endAtRef.current;
-      if (endAt == null) return;
-      const next = Math.max(0, endAt - Date.now());
-      setRemainingMs(next);
-      if (next <= 0) {
-        setRunning(false);
-        endAtRef.current = null;
-      }
-    }, 200);
-    return () => window.clearInterval(id);
-  }, [running]);
-
-  function start() {
-    const left = remainingMs > 0 ? remainingMs : totalMs;
-    if (remainingMs <= 0) setRemainingMs(totalMs);
-    endAtRef.current = Date.now() + left;
-    setRunning(true);
-  }
-
-  function pause() {
-    if (endAtRef.current != null) {
-      setRemainingMs(Math.max(0, endAtRef.current - Date.now()));
-    }
-    endAtRef.current = null;
-    setRunning(false);
-  }
-
-  function reset() {
-    endAtRef.current = null;
-    setRunning(false);
-    setRemainingMs(totalMs);
-  }
-
-  const done = remainingMs <= 0;
 
   return (
     <div className="mt-4 rounded-[1.25rem] border border-line bg-card p-4">
-      <p className="text-xs text-muted">{t("cookTimerLabel", { n: minutes })}</p>
-      <p className="mt-2 text-center font-black tabular-nums tracking-tight text-3xl">
-        {formatClock(remainingMs)}
+      <p className="text-base text-muted">{t("cookTimerLabel", { n: minutes })}</p>
+      <p className="mt-2 text-center text-5xl font-black tabular-nums tracking-tight">
+        {formatTimerClock(remainingMs)}
       </p>
-      {done ? <p className="mt-2 text-center text-sm font-medium text-accent">{t("cookTimerDone")}</p> : null}
+      {done ? <p className="mt-2 text-center text-lg font-medium text-accent">{t("cookTimerDone")}</p> : null}
       <div className="mt-4 grid grid-cols-3 gap-1 min-[380px]:gap-2">
-        <button type="button" className="btn-primary min-h-11 min-w-0 px-2 text-xs min-[380px]:px-4 min-[380px]:text-sm" onClick={start} disabled={running}>
+        <button
+          type="button"
+          className="btn-primary min-h-12 min-w-0 px-2 text-base"
+          onClick={onStart}
+          disabled={running}
+        >
           {t("cookTimerStart")}
         </button>
-        <button type="button" className="btn-secondary min-h-11 min-w-0 px-2 text-xs min-[380px]:px-4 min-[380px]:text-sm" onClick={pause} disabled={!running}>
+        <button
+          type="button"
+          className="btn-secondary min-h-12 min-w-0 px-2 text-base"
+          onClick={onPause}
+          disabled={!running}
+        >
           {t("cookTimerPause")}
         </button>
-        <button type="button" className="btn-secondary min-h-11 min-w-0 px-2 text-xs min-[380px]:px-4 min-[380px]:text-sm" onClick={reset}>
+        <button
+          type="button"
+          className="btn-secondary min-h-12 min-w-0 px-2 text-base"
+          onClick={onReset}
+        >
           {t("cookTimerReset")}
         </button>
       </div>
+      {typeof Notification !== "undefined" && Notification.permission !== "granted" ? (
+        <p className="mt-3 text-sm leading-relaxed text-muted">{t("cookTimerPermissionHint")}</p>
+      ) : null}
     </div>
   );
 }

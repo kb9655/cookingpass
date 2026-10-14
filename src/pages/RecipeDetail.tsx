@@ -15,14 +15,14 @@ import { requestAdjustedRecipe } from "../services/aiService";
 import { listNotePresets, upsertNotePreset } from "../services/notePresetService";
 import { getLocalVisit, rememberRecipeVisit } from "../services/recipeVisitService";
 import { updateProfile } from "../services/profileService";
-import { formatAmount, scaleAmount } from "../lib/formatAmount";
+import { scaleAmount } from "../lib/formatAmount";
 import {
-  convertAmount,
   formatDisplayedMeasure,
+  hasEnoughMeasure,
+  isSkippedMeasure,
   localizeInstruction,
-  toDisplayMeasure,
+  type MeasurePrefs,
 } from "../lib/formatMeasure";
-import { formatUnit } from "../lib/formatUnit";
 import { ApiError, suggestSubstitutes } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { useLocale } from "../i18n/locale";
@@ -34,8 +34,9 @@ import type { RecipeIngredient, UserIngredient } from "../types/ingredient";
 type Shortage = {
   name: string;
   need: number;
+  needUnit: string;
   have: number;
-  unit: string;
+  haveUnit: string;
 };
 
 type WizardStep = "servings" | "ingredients" | "substitutes" | "tools" | "notes" | "review";
@@ -59,17 +60,19 @@ function findShortages(
   checks: IngredientCheck[],
   servings: number,
   baseServings: number,
+  prefs: MeasurePrefs,
 ): Shortage[] {
   return checks.flatMap((item) => {
     if (!item.selected) return [];
     const recipeItem = ingredients.find((row) => row.ingredient_id === item.ingredient_id);
     if (!recipeItem) return [];
-    const unit = (recipeItem.unit || item.unit || "").toLowerCase();
-    if (unit === "to taste") return [];
+    const needUnit = recipeItem.unit || item.unit;
+    const haveUnit = item.unit || recipeItem.unit;
+    if (isSkippedMeasure(needUnit)) return [];
     const need = scaleAmount(recipeItem.amount ?? 0, servings, baseServings);
     if (need <= 0) return [];
-    if (item.amount + 1e-6 >= need) return [];
-    return [{ name: item.name, need, have: item.amount, unit: item.unit }];
+    if (hasEnoughMeasure(item.amount, haveUnit, need, needUnit, prefs)) return [];
+    return [{ name: item.name, need, needUnit, have: item.amount, haveUnit }];
   });
 }
 
@@ -358,7 +361,7 @@ export function RecipeDetail() {
       return;
     }
     if (step === "ingredients") {
-      const missing = findShortages(recipe.ingredients, checks, servings, recipe.servings);
+      const missing = findShortages(recipe.ingredients, checks, servings, recipe.servings, prefs);
       if (missing.length > 0) {
         setShortages(missing);
         setShortageOpen(true);
@@ -761,20 +764,15 @@ export function RecipeDetail() {
         >
           <p>{t("recipeShortageLead")}</p>
           <ul className="mt-3 space-y-1">
-            {shortages.map((item) => {
-              const shown = toDisplayMeasure(item.need, item.unit, prefs);
-              const haveShown = convertAmount(item.have, item.unit, shown.unit);
-              return (
-                <li key={item.name}>
-                  {t("recipeShortageItem", {
-                    name: item.name,
-                    need: formatAmount(shown.amount),
-                    have: formatAmount(haveShown),
-                    unit: formatUnit(shown.unit, locale),
-                  })}
-                </li>
-              );
-            })}
+            {shortages.map((item) => (
+              <li key={item.name}>
+                {t("recipeShortageItem", {
+                  name: item.name,
+                  need: formatDisplayedMeasure(item.need, item.needUnit, prefs, locale),
+                  have: formatDisplayedMeasure(item.have, item.haveUnit, prefs, locale),
+                })}
+              </li>
+            ))}
           </ul>
         </ConfirmDialog>
       ) : null}

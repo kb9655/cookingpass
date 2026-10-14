@@ -113,12 +113,52 @@ function canonical(amount: number, unit: string): Canonical {
   return { kind: "other", amount, unit };
 }
 
-function roundDisplay(value: number): number {
+export function roundDisplay(value: number): number {
   if (!Number.isFinite(value)) return 0;
   const absolute = Math.abs(value);
   if (absolute >= 100) return roundAmount(value, 0);
   if (absolute >= 10) return roundAmount(value, 1);
   return roundAmount(value, 2);
+}
+
+export function isSkippedMeasure(unit: string): boolean {
+  const key = unitKey(unit);
+  return SKIP_UNITS.has(normalizeUnit(unit)) || SKIP_UNITS.has(key);
+}
+
+export function measuresCompatible(fromUnit: string, toUnit: string): boolean {
+  const from = canonical(1, fromUnit);
+  const to = canonical(1, toUnit);
+  if (from.kind === "other" || to.kind === "other") {
+    return unitKey(fromUnit) === unitKey(toUnit);
+  }
+  return from.kind === to.kind;
+}
+
+function toIntegerQuant(amount: number, unit: string): number {
+  const value = canonical(amount, unit);
+  if (value.kind === "mass") return Math.round(value.grams * 1000);
+  if (value.kind === "volume") return Math.round(value.ml * 1000);
+  if (value.kind === "length") return Math.round(value.inches * 1000);
+  return Math.round(amount * 100);
+}
+
+export function hasEnoughMeasure(
+  haveAmount: number,
+  haveUnit: string,
+  needAmount: number,
+  needUnit: string,
+  prefs: MeasurePrefs,
+): boolean {
+  if (!Number.isFinite(needAmount) || needAmount <= 0) return true;
+  if (isSkippedMeasure(needUnit) || isSkippedMeasure(haveUnit)) return true;
+  if (!measuresCompatible(haveUnit, needUnit)) return false;
+
+  const needDisplay = toDisplayMeasure(needAmount, needUnit, prefs);
+  const haveDisplayAmount = roundDisplay(
+    convertAmount(haveAmount, haveUnit, needDisplay.unit),
+  );
+  return toIntegerQuant(haveDisplayAmount, needDisplay.unit) >= toIntegerQuant(needDisplay.amount, needDisplay.unit);
 }
 
 function fromMass(grams: number, system: MeasureSystem): { amount: number; unit: string } {

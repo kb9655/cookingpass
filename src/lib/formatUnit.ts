@@ -74,6 +74,63 @@ const KO_UNITS: Record<string, string> = {
   millilitres: "ml",
 };
 
+const EN_UNITS: Record<string, string> = {
+  count: "count",
+  ea: "count",
+  piece: "count",
+  pieces: "count",
+  "개": "count",
+  cup: "cup",
+  cups: "cup",
+  "컵": "cup",
+  tablespoon: "tbsp",
+  tablespoons: "tbsp",
+  tbsp: "tbsp",
+  "큰술": "tbsp",
+  teaspoon: "tsp",
+  teaspoons: "tsp",
+  tsp: "tsp",
+  "작은술": "tsp",
+  ounce: "oz",
+  ounces: "oz",
+  oz: "oz",
+  pound: "lb",
+  pounds: "lb",
+  lb: "lb",
+  lbs: "lb",
+  gram: "g",
+  grams: "g",
+  g: "g",
+  kilogram: "kg",
+  kilograms: "kg",
+  kg: "kg",
+  milliliter: "ml",
+  milliliters: "ml",
+  millilitre: "ml",
+  millilitres: "ml",
+  ml: "ml",
+  liter: "l",
+  liters: "l",
+  litre: "l",
+  litres: "l",
+  l: "l",
+  inch: "inch",
+  inches: "inch",
+  in: "inch",
+  "인치": "inch",
+  cm: "cm",
+  "온스": "oz",
+  "파운드": "lb",
+};
+
+function lookupUnit(map: Record<string, string>, unit: string): string | undefined {
+  const key = unit.trim().toLowerCase().replace(/[.]/g, "");
+  if (map[key]) return map[key];
+  if (map[unit.trim()]) return map[unit.trim()];
+  const singular = key.endsWith("es") ? key.slice(0, -2) : key.endsWith("s") ? key.slice(0, -1) : key;
+  return map[singular];
+}
+
 const SYLLABLES: Record<string, string> = {
   a: "아",
   e: "에",
@@ -112,15 +169,13 @@ function transliterateLatin(unit: string): string {
 export function formatUnit(unit: string, locale: Locale = "ko"): string {
   const trimmed = unit.trim();
   if (!trimmed) return locale === "ko" ? "개" : "count";
-  if (locale !== "ko") return trimmed;
+  if (locale === "en") return lookupUnit(EN_UNITS, trimmed) ?? trimmed;
+
   if (/[\uac00-\ud7a3]/.test(trimmed)) return trimmed;
+  const mapped = lookupUnit(KO_UNITS, trimmed);
+  if (mapped) return mapped;
 
   const key = trimmed.toLowerCase().replace(/[.]/g, "");
-  if (KO_UNITS[key]) return KO_UNITS[key];
-
-  const singular = key.endsWith("es") ? key.slice(0, -2) : key.endsWith("s") ? key.slice(0, -1) : key;
-  if (KO_UNITS[singular]) return KO_UNITS[singular];
-
   if (/^(mg|mcg|l|dl|cl|cm|mm|in)$/i.test(key)) return key;
   return transliterateLatin(key);
 }
