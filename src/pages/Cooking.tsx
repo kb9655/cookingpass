@@ -4,16 +4,17 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEmergencyChatPage } from "../components/chat/EmergencyChatProvider";
 import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { ErrorState } from "../components/common/Feedback";
-import { ProgressBar } from "../components/common/ProgressBar";
+import { XpGainCelebrate } from "../components/common/XpGainCelebrate";
 import { CookingStep } from "../components/cooking/CookingStep";
 import { CookingTimerDock } from "../components/cooking/CookingTimerDock";
 import { LessonProgress } from "../components/technique/LessonProgress";
 import { useAuth } from "../hooks/useAuth";
 import { useWaitTimer } from "../hooks/useWaitTimer";
 import { useLocale } from "../i18n/locale";
-import { setSkipTimerLeaveConfirm, shouldConfirmTimerLeave } from "../lib/cookTimer";
+import { setSkipTimerLeaveConfirm, shouldConfirmTimerLeave, timerStepSnippet } from "../lib/cookTimer";
 import { fileToJpegBlob } from "../lib/compressImage";
 import { addJournalPhoto, journalOwnerId, JournalQuotaError } from "../lib/journalStore";
+import { bumpGuestCookCount } from "../lib/achievements";
 import { recordGuestClearedRecipe } from "../lib/recipeWorlds";
 import { XP_PER_CLEAR, XP_PER_STAR, cookingXpFromDifficulty, playerLevelFromXp } from "../lib/playerLevel";
 import { isSupabaseConfigured } from "../lib/supabase";
@@ -53,6 +54,8 @@ export function Cooking() {
   const [gainedXp, setGainedXp] = useState(0);
   const [fromPercent, setFromPercent] = useState(0);
   const [toPercent, setToPercent] = useState(0);
+  const [fromLevel, setFromLevel] = useState(1);
+  const [toLevel, setToLevel] = useState(1);
   const [barReady, setBarReady] = useState(false);
   const [ready, setReady] = useState(false);
   const [saveRecipe, setSaveRecipe] = useState(false);
@@ -66,10 +69,11 @@ export function Cooking() {
   const cookSessionId = useMemo(() => `cook:${id}:${startedAt}`, [id, startedAt]);
   const finishedRef = useRef(false);
   const draftRef = useRef<CookingDraft | null>(null);
-  const { timer: waitTimer, start: startWait, pause: pauseWait, reset: resetWait, clear: clearWait } =
+  const { timers: waitTimers, start: startWait, pause: pauseWait, reset: resetWait, clear: clearWait } =
     useWaitTimer(recipe?.title || t("cookTimerNotifyTitle"), (stepLabel) =>
       t("cookTimerNotifyBody", { step: stepLabel }),
     );
+  const currentWait = waitTimers.find((item) => item.stepIndex === viewIndex) ?? null;
 
   useEffect(() => {
     setReady(false);
@@ -199,7 +203,7 @@ export function Cooking() {
       advanceNext();
       return;
     }
-    if (waitTimer?.running && waitTimer.stepIndex === viewIndex && shouldConfirmTimerLeave()) {
+    if (currentWait?.running && shouldConfirmTimerLeave()) {
       setDontAskLeave(false);
       setLeaveOpen(true);
       return;
@@ -222,8 +226,10 @@ export function Cooking() {
     const gained = cookingXpFromDifficulty(difficulty);
     const fromState = playerLevelFromXp(baseXp);
     const toState = playerLevelFromXp(baseXp + gained);
-    setFromPercent(toState.barPercent < fromState.barPercent ? 0 : fromState.barPercent);
+    setFromPercent(fromState.barPercent);
     setToPercent(toState.barPercent);
+    setFromLevel(fromState.level);
+    setToLevel(toState.level);
     setGainedXp(gained);
 
     try {
@@ -249,6 +255,7 @@ export function Cooking() {
           saveRecipe: false,
         });
       }
+      if (!user) bumpGuestCookCount();
       recordGuestClearedRecipe(id, difficulty);
       setWorldNote(t("cookSummaryWorldStay"));
       finishedRef.current = true;
@@ -325,8 +332,14 @@ export function Cooking() {
       <main className="page pb-8">
         <p className="text-base font-medium text-muted">{t("cookSummaryTitle")}</p>
         <h1 className="mt-2 text-4xl font-semibold tracking-tight break-keep">{recipe.title}</h1>
-        <p className="mt-4 text-3xl font-black text-accent">{t("cookSummaryXp", { n: gainedXp })}</p>
-        {barReady ? <ProgressBar value={toPercent} /> : <ProgressBar value={fromPercent} />}
+        <XpGainCelebrate
+          gainedXp={gainedXp}
+          fromPercent={fromPercent}
+          toPercent={toPercent}
+          fromLevel={fromLevel}
+          toLevel={toLevel}
+          animate={barReady}
+        />
         {worldNote ? <p className="mt-3 text-lg font-semibold text-accent">{worldNote}</p> : null}
         <label className="btn-secondary mt-6 w-full cursor-pointer">
           <input
@@ -419,20 +432,20 @@ export function Cooking() {
                 <CookingStep
                   step={step}
                   techniqueName={step.technique_id ? techniqueNames[step.technique_id] : undefined}
-                  waitTimer={waitTimer?.stepIndex === viewIndex ? waitTimer : null}
+                  waitTimer={currentWait}
                   onTimerStart={() => {
                     startWait({
                       stepIndex: viewIndex,
                       stepNumber: step.step,
-                      label: step.technique_id ? techniqueNames[step.technique_id] ?? "" : "",
+                      label: timerStepSnippet(step.instruction),
                       minutes: step.time_minutes ?? 0,
                     });
                   }}
                   onTimerPause={() => {
-                    if (waitTimer?.stepIndex === viewIndex) pauseWait();
+                    pauseWait(viewIndex);
                   }}
                   onTimerReset={() => {
-                    if (waitTimer?.stepIndex === viewIndex) resetWait();
+                    resetWait(viewIndex);
                   }}
                 />
               </div>
@@ -450,15 +463,14 @@ export function Cooking() {
         </button>
       </div>
       {error ? <p className="mb-2 text-sm text-red-700">{error}</p> : null}
-      {waitTimer ? (
-        <CookingTimerDock
-          timer={waitTimer}
-          onOpenStep={(stepIndex) => {
-            setOnIntro(false);
-            setViewIndex(stepIndex);
-          }}
-        />
-      ) : null}
+      <CookingTimerDock
+        timers={waitTimers}
+        activeStepIndex={viewIndex}
+        onOpenStep={(stepIndex) => {
+          setOnIntro(false);
+          setViewIndex(stepIndex);
+        }}
+      />
       <button
         className="btn-primary mb-2 min-h-16 w-full text-xl"
         type="button"

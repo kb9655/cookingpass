@@ -101,6 +101,16 @@ export async function flushPendingCookingSave(userId: string): Promise<void> {
   clearPendingCookingSave();
 }
 
+export async function countCompletedCooks(userId: string): Promise<number> {
+  const { count, error } = await requireSupabase()
+    .from("cooking_history")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("completed", true);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function listCompletedRecipeMarks(userId: string): Promise<Array<{ id: string; difficulty: number }>> {
   const { data, error } = await requireSupabase()
     .from("cooking_history")
@@ -133,6 +143,15 @@ export async function sumCompletedCookingStars(userId: string): Promise<number> 
     stars += Math.max(1, Math.round(Number.isFinite(difficulty) ? difficulty : 1));
   }
   return stars;
+}
+
+export async function deleteCookingHistory(userId: string, id: string): Promise<void> {
+  const { error } = await requireSupabase()
+    .from("cooking_history")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) throw error;
 }
 
 export async function listCookingHistory(userId: string, locale: Locale = "ko"): Promise<CookingHistory[]> {

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, NotebookText, Refrigerator, UtensilsCrossed } from "lucide-react";
+import { BookOpen, NotebookText, Trophy, UtensilsCrossed } from "lucide-react";
 import { RecentRecipeList } from "../components/recipe/RecentRecipeList";
 import { useLocale } from "../i18n/locale";
 
@@ -43,13 +43,13 @@ export function Home() {
           </div>
         </Link>
         <Link
-          to="/fridge"
+          to="/achievements"
           className="card-casual flex min-h-36 flex-col justify-between px-5 py-5 transition active:translate-y-0.5 min-[390px]:min-h-44 min-[390px]:px-6 min-[390px]:py-6"
         >
-          <Refrigerator className="h-9 w-9 text-accent" strokeWidth={2.2} />
+          <Trophy className="h-9 w-9 text-accent" strokeWidth={2.2} />
           <div>
-            <p className="text-3xl font-black break-keep">{t("homeFridge")}</p>
-            <p className="mt-1 text-sm text-muted">{t("homeFridgeLead")}</p>
+            <p className="text-3xl font-black break-keep">{t("homeAchievements")}</p>
+            <p className="mt-1 text-sm text-muted">{t("homeAchievementsLead")}</p>
           </div>
         </Link>
       </div>

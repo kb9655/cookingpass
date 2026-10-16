@@ -8,6 +8,14 @@ export function recipeWorld(difficulty: number): number {
   return Math.min(RECIPE_WORLD_MAX, Math.max(1, stars));
 }
 
+export function catalogWorldMax(recipes: Array<{ difficulty: number }>): number {
+  let max = 1;
+  for (const recipe of recipes) {
+    max = Math.max(max, recipeWorld(recipe.difficulty));
+  }
+  return Math.min(RECIPE_WORLD_MAX, max);
+}
+
 export function loadGuestClearedRecipes(): ClearedRecipeMark[] {
   try {
     const raw = localStorage.getItem(CLEARED_RECIPES_KEY);

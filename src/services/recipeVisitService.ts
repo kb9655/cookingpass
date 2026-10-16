@@ -80,6 +80,19 @@ export function getLocalVisit(recipeId: string): RecipeVisit | null {
   return readLocalVisits().find((item) => item.recipeId === recipeId) ?? null;
 }
 
+export function removeRecipeVisit(recipeId: string, userId?: string | null): void {
+  writeLocalVisits(readLocalVisits().filter((item) => item.recipeId !== recipeId));
+  if (userId && isSupabaseConfigured) {
+    void requireSupabase()
+      .from("recipe_visits")
+      .delete()
+      .eq("user_id", userId)
+      .eq("recipe_id", recipeId)
+      .then(() => undefined)
+      .catch(() => undefined);
+  }
+}
+
 async function trimRemote(userId: string): Promise<void> {
   const { data, error } = await requireSupabase()
     .from("recipe_visits")

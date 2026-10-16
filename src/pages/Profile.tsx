@@ -1,9 +1,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Trash2 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { getTechniqueProgress, listTechniques, resetAllTechniqueProgress } from "../services/techniqueService";
-import { listCookingHistory, sumCompletedCookingStars } from "../services/historyService";
+import { deleteCookingHistory, listCookingHistory, sumCompletedCookingStars } from "../services/historyService";
 import { importSharedRecipe, listUserRecipes } from "../services/userRecipeService";
 import { updateProfile } from "../services/profileService";
 import { listKnownTools } from "../services/recipeService";
@@ -47,6 +48,8 @@ export function Profile() {
   const [loading, setLoading] = useState(true);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [pendingHistoryId, setPendingHistoryId] = useState<string | null>(null);
+  const [deletingHistory, setDeletingHistory] = useState(false);
   const [experience, setExperience] = useState<ExperienceLevel>(profile?.experience_level ?? "beginner");
   const [tools, setTools] = useState<string[]>(profile?.available_tools ?? []);
   const [knownTools, setKnownTools] = useState<string[]>(DEFAULT_TOOLS);
@@ -295,10 +298,10 @@ export function Profile() {
             ) : (
               <ul className="mt-3 space-y-2">
                 {history.map((item) => (
-                  <li key={item.id}>
+                  <li key={item.id} className="card-casual flex min-w-0 items-stretch">
                     <Link
                       to={`/recipes/${item.recipe_id}`}
-                      className="card-casual flex min-w-0 items-start justify-between gap-3 px-4 py-3 text-sm"
+                      className="flex min-w-0 flex-1 items-start justify-between gap-3 px-4 py-3 text-sm"
                     >
                       <span className="min-w-0 flex-1 break-keep">{item.recipe_name}</span>
                       <span className="shrink-0 text-right text-muted">
@@ -306,6 +309,14 @@ export function Profile() {
                         {new Date(item.cooked_at).toLocaleDateString(locale === "en" ? "en-US" : "ko-KR")}
                       </span>
                     </Link>
+                    <button
+                      type="button"
+                      className="grid w-12 shrink-0 place-items-center text-muted hover:text-red-700"
+                      aria-label={t("historyDelete")}
+                      onClick={() => setPendingHistoryId(item.id)}
+                    >
+                      <Trash2 className="h-5 w-5" strokeWidth={2} />
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -323,6 +334,29 @@ export function Profile() {
       <button type="button" className="btn-secondary mt-8 w-full" onClick={() => void signOut()}>
         {t("profileLogout")}
       </button>
+      {pendingHistoryId ? (
+        <ConfirmDialog
+          title={t("historyDeleteConfirm")}
+          confirmLabel={deletingHistory ? t("historyDeleting") : t("historyDelete")}
+          busy={deletingHistory}
+          onConfirm={() => {
+            if (!user || deletingHistory) return;
+            setDeletingHistory(true);
+            void deleteCookingHistory(user.id, pendingHistoryId)
+              .then(() => {
+                setHistory((current) => current.filter((item) => item.id !== pendingHistoryId));
+                setPendingHistoryId(null);
+              })
+              .catch((err: unknown) => {
+                setError(err instanceof Error ? err.message : t("historyDeleteError"));
+              })
+              .finally(() => setDeletingHistory(false));
+          }}
+          onClose={() => {
+            if (!deletingHistory) setPendingHistoryId(null);
+          }}
+        />
+      ) : null}
       {resetOpen && import.meta.env.DEV ? (
         <ConfirmDialog
           title={t("profileResetConfirm")}

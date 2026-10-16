@@ -143,3 +143,38 @@ export function rankUseUpRecipes(records: ParsedRecipeRecord[], keywords: string
     return b.score - a.score;
   });
 }
+
+export function rankUseUpScoredRecipes(recipes: ScoredRecipe[], keywords: string[]): UseUpRecipe[] {
+  const query = keywords.map((item) => item.trim()).filter(Boolean).slice(0, MAX_FRIDGE_KEYWORDS);
+  if (query.length === 0) return [];
+
+  const ranked = recipes
+    .map((recipe) => {
+      const names = recipe.ingredient_names.filter(Boolean);
+      const searchNames = [...names, recipe.name, recipe.description].filter(Boolean);
+      const hits = keywordHitCount(searchNames, query);
+      if (hits === 0) return null;
+      const matchedIngredients = matchedNames(names, query);
+      const labels = matchedIngredients.length
+        ? matchedIngredients
+        : query.filter((keyword) => keywordHitCount(searchNames, [keyword]));
+      const useRatio = matchedIngredients.length / Math.max(1, names.length);
+      const allMatched = hits === query.length ? 1 : 0;
+      const next: UseUpRecipe = {
+        ...recipe,
+        pantry_coverage: useRatio,
+        matchedIngredients: labels,
+        score: allMatched * 2 + useRatio + recipe.score,
+      };
+      return { next, allMatched };
+    })
+    .filter((item): item is { next: UseUpRecipe; allMatched: number } => Boolean(item));
+
+  return ranked
+    .sort((a, b) => {
+      if (b.allMatched !== a.allMatched) return b.allMatched - a.allMatched;
+      if (b.next.pantry_coverage !== a.next.pantry_coverage) return b.next.pantry_coverage - a.next.pantry_coverage;
+      return b.next.score - a.next.score;
+    })
+    .map((item) => item.next);
+}

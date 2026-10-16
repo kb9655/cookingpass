@@ -1,11 +1,13 @@
 import { formatTimerClock, type WaitTimer } from "../../lib/cookTimer";
 import { useLocale } from "../../i18n/locale";
 
-export function CookingTimerDock({
+function TimerDockRow({
   timer,
+  active,
   onOpenStep,
 }: {
   timer: WaitTimer;
+  active: boolean;
   onOpenStep: (stepIndex: number) => void;
 }) {
   const { t } = useLocale();
@@ -20,7 +22,9 @@ export function CookingTimerDock({
   return (
     <button
       type="button"
-      className="mb-2 flex w-full items-center gap-3 rounded-[1.25rem] border border-accent/30 bg-card px-3 py-2 text-left shadow-sm"
+      className={`flex w-full items-center gap-3 rounded-[1.25rem] border bg-card px-3 py-2 text-left shadow-sm ${
+        active ? "border-accent" : "border-accent/30"
+      }`}
       onClick={() => onOpenStep(timer.stepIndex)}
       aria-label={t("cookTimerDockOpen")}
     >
@@ -45,5 +49,30 @@ export function CookingTimerDock({
         </span>
       </span>
     </button>
+  );
+}
+
+export function CookingTimerDock({
+  timers,
+  activeStepIndex,
+  onOpenStep,
+}: {
+  timers: WaitTimer[];
+  activeStepIndex: number;
+  onOpenStep: (stepIndex: number) => void;
+}) {
+  if (!timers.length) return null;
+
+  return (
+    <div className="mb-2 flex max-h-44 flex-col gap-2 overflow-y-auto">
+      {timers.map((timer) => (
+        <TimerDockRow
+          key={timer.stepIndex}
+          timer={timer}
+          active={timer.stepIndex === activeStepIndex}
+          onOpenStep={onOpenStep}
+        />
+      ))}
+    </div>
   );
 }

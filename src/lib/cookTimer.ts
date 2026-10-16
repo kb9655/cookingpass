@@ -22,6 +22,14 @@ export function minutesToMs(minutes: number): number {
   return Math.max(0, Math.round(minutes * 60 * 1000));
 }
 
+export function timerStepSnippet(instruction: string, max = 22): string {
+  const cleaned = instruction.replace(/\s+/g, " ").trim();
+  if (!cleaned) return "";
+  const clause = cleaned.split(/[.!?。！？]/)[0]?.trim() || cleaned;
+  if (clause.length <= max) return clause;
+  return `${clause.slice(0, max).trim()}…`;
+}
+
 export function shouldConfirmTimerLeave(): boolean {
   try {
     return localStorage.getItem(SKIP_TIMER_LEAVE_CONFIRM_KEY) !== "1";
@@ -50,10 +58,10 @@ export async function requestTimerNotificationPermission(): Promise<boolean> {
   }
 }
 
-export function showTimerNotification(title: string, body: string): void {
+export function showTimerNotification(title: string, body: string, tag = "cookingpass-wait-timer"): void {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   try {
-    const notification = new Notification(title, { body, tag: "cookingpass-wait-timer" });
+    const notification = new Notification(title, { body, tag });
     window.setTimeout(() => notification.close(), 12_000);
   } catch {
     // Some browsers require a service worker for Notification construction.

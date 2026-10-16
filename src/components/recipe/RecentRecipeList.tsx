@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Trash2 } from "lucide-react";
+import { ConfirmDialog } from "../common/ConfirmDialog";
 import { useAuth } from "../../hooks/useAuth";
 import { useLocale } from "../../i18n/locale";
-import { readLocalVisits, subscribeVisits, type RecipeVisit } from "../../services/recipeVisitService";
+import { readLocalVisits, removeRecipeVisit, subscribeVisits, type RecipeVisit } from "../../services/recipeVisitService";
 
 export function RecentRecipeList({ title }: { title: string }) {
   const { locale, t } = useLocale();
   const { user } = useAuth();
   const [visits, setVisits] = useState<RecipeVisit[]>(() => readLocalVisits());
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     const refresh = () => setVisits(readLocalVisits());
@@ -22,10 +25,10 @@ export function RecentRecipeList({ title }: { title: string }) {
       <h2 className="text-lg font-black">{title}</h2>
       <ul className="mt-3 space-y-2">
         {visits.map((item) => (
-          <li key={item.recipeId}>
+          <li key={item.recipeId} className="card-casual flex min-w-0 items-stretch">
             <Link
               to={`/recipes/${item.recipeId}`}
-              className="card-casual flex min-w-0 flex-col gap-1 px-4 py-3 text-sm"
+              className="flex min-w-0 flex-1 flex-col gap-1 px-4 py-3 text-sm"
             >
               <span className="flex min-w-0 items-start justify-between gap-3">
                 <span className="min-w-0 flex-1 break-keep font-medium">{item.recipeName}</span>
@@ -38,9 +41,28 @@ export function RecentRecipeList({ title }: { title: string }) {
                 {new Date(item.visitedAt).toLocaleDateString(locale === "en" ? "en-US" : "ko-KR")}
               </span>
             </Link>
+            <button
+              type="button"
+              className="grid w-12 shrink-0 place-items-center text-muted hover:text-red-700"
+              aria-label={t("recentRecipeDelete")}
+              onClick={() => setPendingId(item.recipeId)}
+            >
+              <Trash2 className="h-5 w-5" strokeWidth={2} />
+            </button>
           </li>
         ))}
       </ul>
+      {pendingId ? (
+        <ConfirmDialog
+          title={t("recentRecipeDeleteConfirm")}
+          confirmLabel={t("recentRecipeDelete")}
+          onConfirm={() => {
+            removeRecipeVisit(pendingId, user?.id);
+            setPendingId(null);
+          }}
+          onClose={() => setPendingId(null)}
+        />
+      ) : null}
     </section>
   );
 }

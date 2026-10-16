@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { ChefHat, House, Refrigerator, UserRound, UtensilsCrossed } from "lucide-react";
+import { ChefHat, House, Trophy, UserRound, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useViewMode } from "../../hooks/useViewMode";
 import { useLocale } from "../../i18n/locale";
@@ -20,6 +20,9 @@ export function AppShell() {
   const { mode, toggle } = useViewMode();
   const [cleared, setCleared] = useState(0);
   const [cookingStars, setCookingStars] = useState(0);
+  const [xpReady, setXpReady] = useState(false);
+  const [chipFx, setChipFx] = useState<"gain" | "level" | "">("");
+  const prevXpRef = useRef({ xp: 0, level: 1, primed: false });
   const isAuthPage =
     location.pathname.startsWith("/login") || location.pathname.startsWith("/signup");
   const isLessonPage =
@@ -31,6 +34,8 @@ export function AppShell() {
     if (!user || !isSupabaseConfigured) {
       setCleared(0);
       setCookingStars(0);
+      setXpReady(false);
+      prevXpRef.current = { xp: 0, level: 1, primed: false };
       return;
     }
     let active = true;
@@ -49,6 +54,7 @@ export function AppShell() {
         if (!active) return;
         setCleared(rows.filter((row) => row.status === "cleared").length);
         setCookingStars(stars);
+        setXpReady(true);
       } catch {
         if (active) {
           setCleared(0);
@@ -62,6 +68,22 @@ export function AppShell() {
   }, [user, location.pathname]);
 
   useEffect(() => {
+    if (!xpReady) return;
+    const prev = prevXpRef.current;
+    if (!prev.primed) {
+      prevXpRef.current = { xp: player.totalXp, level: player.level, primed: true };
+      return;
+    }
+    const xpUp = player.totalXp > prev.xp;
+    const levelUp = player.level > prev.level;
+    prevXpRef.current = { xp: player.totalXp, level: player.level, primed: true };
+    if (!xpUp && !levelUp) return;
+    setChipFx(levelUp ? "level" : "gain");
+    const id = window.setTimeout(() => setChipFx(""), 1400);
+    return () => window.clearTimeout(id);
+  }, [xpReady, player.totalXp, player.level]);
+
+  useEffect(() => {
     if (!user || !isSupabaseConfigured) return;
     void mergeRecipeVisits(user.id, locale).catch(() => undefined);
   }, [user, locale]);
@@ -70,7 +92,7 @@ export function AppShell() {
     { to: "/", label: t("navHome"), icon: House, end: true },
     { to: "/techniques", label: t("navTechniques"), icon: ChefHat },
     { to: "/recipes", label: t("navRecipes"), icon: UtensilsCrossed },
-    { to: "/fridge", label: t("navFridge"), icon: Refrigerator },
+    { to: "/achievements", label: t("navAchievements"), icon: Trophy },
     { to: "/profile", label: t("navProfile"), icon: UserRound },
   ];
 
@@ -97,9 +119,15 @@ export function AppShell() {
               {mode === "landscape" ? t("viewPortrait") : t("viewLandscape")}
             </button>
             {user ? (
-              <Link to="/profile" className="xp-chip shrink-0 whitespace-nowrap" aria-label={t("navProfile")}>
+              <Link
+                to="/profile"
+                className={`xp-chip shrink-0 whitespace-nowrap ${
+                  chipFx === "level" ? "xp-chip-level" : chipFx === "gain" ? "xp-chip-gain" : ""
+                }`}
+                aria-label={t("navProfile")}
+              >
                 <span className="text-accent">{t("profileLevelShort", { n: player.level })}</span>
-                <span className="text-muted">
+                <span className={chipFx === "level" ? "text-white" : "text-muted"}>
                   {t("profileXp", { current: player.xpInLevel, need: player.xpForLevel })}
                 </span>
               </Link>
@@ -111,7 +139,11 @@ export function AppShell() {
             </div>
           </div>
         </header>
-        <div className={hideTabs ? "min-w-0 flex-1" : "min-w-0 flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))]"}>
+        <div
+          className={
+            hideTabs ? "shell-main min-w-0 flex-1" : "shell-main min-w-0 flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))]"
+          }
+        >
           <Outlet />
         </div>
         {isAuthPage ? null : <RecommendPrompt />}
