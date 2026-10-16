@@ -6,6 +6,7 @@ export type PlayerLevel = {
   level: number;
   totalXp: number;
   xpInLevel: number;
+  xpForLevel: number;
   xpToNext: number;
   barPercent: number;
 };
@@ -23,7 +24,8 @@ export function playerLevelFromXp(totalXp: number): PlayerLevel {
     level,
     totalXp: safe,
     xpInLevel,
-    xpToNext: XP_PER_LEVEL,
+    xpForLevel: XP_PER_LEVEL,
+    xpToNext: XP_PER_LEVEL - xpInLevel,
     barPercent: Math.round((xpInLevel / XP_PER_LEVEL) * 100),
   };
 }

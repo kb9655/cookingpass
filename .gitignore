@@ -30,3 +30,8 @@ resource_temp/1_Recipe_csv.csv
 scripts/.seed-chunks/
 .vercel
 .env*
+
+# Presentation files (keep local, do not publish)
+*.pptx
+*.docx
+발표자료/

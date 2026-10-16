@@ -335,48 +335,75 @@ async function handlePost(req: Request) {
   const client = new Anthropic({ apiKey });
   const model = env("ANTHROPIC_MODEL") ?? "claude-sonnet-4-5";
 
-  let toolInput: unknown;
-  try {
-    const message = await client.messages.create({
-      model,
-      max_tokens: 8192,
-      tools: [
-        {
-          name: "submit_adjusted_recipe",
-          description: "보유 재료와 수정 요청에 맞춰 단계화된 레시피를 구조화해 제출합니다.",
-          input_schema: adjustedRecipeJsonSchema as never,
-        },
-      ],
-      tool_choice: { type: "tool", name: "submit_adjusted_recipe" },
-      messages: [{ role: "user", content: prompt }],
-    });
+  const result = await adjustRecipeWithRetry(client, model, prompt);
+  if ("error" in result) {
+    return errorResponse(result.error, result.status);
+  }
+  return json({ recipe: result.recipe });
+}
 
-    const tool = message.content.find((block) => block.type === "tool_use");
-    if (tool && tool.type === "tool_use") {
-      toolInput = tool.input;
-    } else {
-      const text = message.content
-        .filter((block) => block.type === "text")
-        .map((block) => (block.type === "text" ? block.text : ""))
-        .join("\n");
-      toolInput = extractJsonObject(text);
-      if (toolInput == null) {
-        return errorResponse("레시피를 조정하지 못했습니다. 잠시 후 다시 시도해 주세요.", 502);
-      }
+function claudeErrorResponse(error: unknown): { error: string; status: number } {
+  const message = error instanceof Error ? error.message : "Claude API 호출에 실패했습니다.";
+  console.error("generate-recipe Claude error:", message);
+  if (/timeout|timed out|ETIMEDOUT|deadline/i.test(message)) {
+    return { error: "조정이 오래 걸렸습니다. 잠시 후 다시 시도해 주세요.", status: 504 };
+  }
+  if (/429|rate|overloaded|capacity/i.test(message)) {
+    return { error: "지금 요청이 많아요. 잠시 후 다시 시도해 주세요.", status: 429 };
+  }
+  return { error: "레시피 조정을 끝내지 못했습니다. 잠시 후 다시 시도해 주세요.", status: 502 };
+}
+
+async function requestAdjustedToolInput(
+  client: Anthropic,
+  model: string,
+  prompt: string,
+): Promise<unknown> {
+  const message = await client.messages.create({
+    model,
+    max_tokens: 8192,
+    tools: [
+      {
+        name: "submit_adjusted_recipe",
+        description: "보유 재료와 수정 요청에 맞춰 단계화된 레시피를 구조화해 제출합니다.",
+        input_schema: adjustedRecipeJsonSchema as never,
+      },
+    ],
+    tool_choice: { type: "tool", name: "submit_adjusted_recipe" },
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const tool = message.content.find((block) => block.type === "tool_use");
+  if (tool && tool.type === "tool_use") return tool.input;
+
+  const text = message.content
+    .filter((block) => block.type === "text")
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("\n");
+  return extractJsonObject(text);
+}
+
+async function adjustRecipeWithRetry(client: Anthropic, model: string, prompt: string) {
+  let lastSchemaError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let toolInput: unknown;
+    try {
+      toolInput = await requestAdjustedToolInput(client, model, prompt);
+    } catch (error) {
+      return claudeErrorResponse(error);
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Claude API 호출에 실패했습니다.";
-    console.error("generate-recipe Claude error:", message);
-    return errorResponse("레시피를 조정하지 못했습니다. 잠시 후 다시 시도해 주세요.", 502);
+    if (toolInput == null) {
+      if (attempt === 0) continue;
+      return { error: "조정 결과를 받지 못했습니다. 다시 시도해 주세요.", status: 502 };
+    }
+    const parsedRecipe = adjustedRecipeSchema.safeParse(normalizeAdjustedRecipe(toolInput));
+    if (parsedRecipe.success) {
+      return { recipe: parsedRecipe.data };
+    }
+    lastSchemaError = parsedRecipe.error.flatten();
+    console.error("generate-recipe schema issues:", lastSchemaError);
   }
-
-  const parsedRecipe = adjustedRecipeSchema.safeParse(normalizeAdjustedRecipe(toolInput));
-  if (!parsedRecipe.success) {
-    console.error("generate-recipe schema issues:", parsedRecipe.error.flatten());
-    return errorResponse("레시피를 조정하지 못했습니다. 잠시 후 다시 시도해 주세요.", 502);
-  }
-
-  return json({ recipe: parsedRecipe.data });
+  return { error: "조정 결과 형식을 읽지 못했습니다. 다시 시도해 주세요.", status: 502 };
 }
 
 async function writeNodeResponse(

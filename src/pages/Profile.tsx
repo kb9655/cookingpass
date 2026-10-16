@@ -151,7 +151,10 @@ export function Profile() {
             <p className="text-sm text-muted">{t("profileProgress")}</p>
             <p className="mt-1 text-2xl font-black">{t("profileLevel", { n: player.level })}</p>
             <p className="mt-1 text-sm text-muted">
-              {t("profileXp", { current: player.xpInLevel, next: player.xpToNext })}
+              {t("profileXp", { current: player.xpInLevel, need: player.xpForLevel })}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              {t("profileXpRemain", { n: player.xpToNext })}
             </p>
             <ProgressBar value={player.barPercent} />
             {import.meta.env.DEV ? (

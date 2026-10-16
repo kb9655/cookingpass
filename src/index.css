@@ -46,8 +46,9 @@ html[data-view="landscape"] .home-actions {
 }
 
 html[data-forced-rotate="true"],
-html[data-forced-rotate="true"] body,
-html[data-forced-rotate="true"] #root {
+html[data-forced-rotate="true"] body {
+  min-height: 0;
+  max-width: none;
   overflow: hidden;
 }
 
@@ -57,21 +58,30 @@ html[data-forced-rotate="true"] body {
   left: 100%;
   width: 100dvh;
   height: 100dvw;
-  max-width: none;
   transform: rotate(90deg);
   transform-origin: top left;
 }
 
 html[data-forced-rotate="true"] #root {
-  min-height: 100%;
+  min-height: 0;
   height: 100%;
+  max-width: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+html[data-forced-rotate="true"] .app-shell {
+  overflow: visible;
 }
 
 body {
   margin: 0;
   background: var(--color-canvas);
   color: var(--color-ink);
-  touch-action: manipulation;
+  touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-x: none;
 }

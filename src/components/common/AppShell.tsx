@@ -76,7 +76,7 @@ export function AppShell() {
 
   return (
     <EmergencyChatProvider>
-      <div className="flex min-h-[100dvh] min-w-0 flex-col overflow-x-clip bg-canvas text-ink">
+      <div className="app-shell flex min-h-[100dvh] min-w-0 flex-col overflow-x-clip bg-canvas text-ink">
         {!configured ? (
           <div className="bg-accent px-4 py-2 text-center text-sm text-white">
             {t("loginNeedSupabase")}
@@ -97,10 +97,10 @@ export function AppShell() {
               {mode === "landscape" ? t("viewPortrait") : t("viewLandscape")}
             </button>
             {user ? (
-              <Link to="/profile" className="xp-chip max-w-[46%] shrink-0 overflow-hidden whitespace-nowrap" aria-label={t("navProfile")}>
-                <span className="text-accent">{t("profileLevel", { n: player.level })}</span>
-                <span className="hidden text-muted min-[360px]:inline">
-                  {t("profileXp", { current: player.xpInLevel, next: player.xpToNext })}
+              <Link to="/profile" className="xp-chip shrink-0 whitespace-nowrap" aria-label={t("navProfile")}>
+                <span className="text-accent">{t("profileLevelShort", { n: player.level })}</span>
+                <span className="text-muted">
+                  {t("profileXp", { current: player.xpInLevel, need: player.xpForLevel })}
                 </span>
               </Link>
             ) : (
