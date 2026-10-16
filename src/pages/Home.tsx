@@ -16,7 +16,7 @@ export function Home() {
           className="flex min-h-36 flex-col justify-between rounded-[2rem] bg-accent px-5 py-5 text-white transition active:translate-y-0.5 min-[390px]:min-h-44 min-[390px]:px-6 min-[390px]:py-6"
           style={{ boxShadow: "inset 0 4px 0 rgba(255,255,255,0.28), 0 10px 0 #1a7a45" }}
         >
-          <BookOpen className="h-9 w-9" strokeWidth={2.2} />
+          <BookOpen className="h-12 w-12" strokeWidth={2.2} />
           <div>
             <p className="text-3xl font-black break-keep">{t("homeLearn")}</p>
             <p className="mt-1 text-sm text-white/80">{t("homeLearnLead")}</p>

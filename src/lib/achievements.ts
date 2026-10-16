@@ -10,7 +10,7 @@ export const ACHIEVEMENT_IDS = [
   "skill3",
   "journal1",
   "saved1",
-  "worldClear",
+  "unique5",
 ] as const;
 
 export type AchievementId = (typeof ACHIEVEMENT_IDS)[number];
@@ -22,7 +22,6 @@ export type AchievementStats = {
   skillsCleared: number;
   journalPhotos: number;
   savedRecipes: number;
-  unlockedWorld: number;
 };
 
 export type AchievementResult = {
@@ -62,7 +61,7 @@ const TARGETS: Record<AchievementId, (stats: AchievementStats) => { current: num
   skill3: (stats) => ({ current: stats.skillsCleared, target: 3 }),
   journal1: (stats) => ({ current: stats.journalPhotos, target: 1 }),
   saved1: (stats) => ({ current: stats.savedRecipes, target: 1 }),
-  worldClear: (stats) => ({ current: stats.unlockedWorld >= 2 ? 1 : 0, target: 1 }),
+  unique5: (stats) => ({ current: stats.uniqueRecipes, target: 5 }),
 };
 
 export function evaluateAchievements(stats: AchievementStats): AchievementResult[] {

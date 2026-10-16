@@ -47,7 +47,7 @@ export function TechniqueCard({
     <Link to={`/techniques/${technique.id}`} className="flex min-w-0 w-full flex-col items-center gap-2 px-0.5">
       <span className="relative flex flex-col items-center">
         <span className={tileClass}>
-          <TechniqueIcon slug={technique.slug} className="size-8" />
+          <TechniqueIcon slug={technique.slug} className="size-11" />
           <span className="sr-only">{cleared ? t("techniquesCleared") : technique.name}</span>
         </span>
         <span className="stage-tile-score">

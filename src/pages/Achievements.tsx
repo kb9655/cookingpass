@@ -6,9 +6,9 @@ import {
   CookingPot,
   GraduationCap,
   LayoutGrid,
+  Layers,
   Medal,
   Star,
-  Trophy,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
@@ -24,7 +24,7 @@ import {
   type AchievementStats,
 } from "../lib/achievements";
 import { journalOwnerId, listJournalPhotos } from "../lib/journalStore";
-import { loadGuestClearedRecipes, maxUnlockedWorld } from "../lib/recipeWorlds";
+import { loadGuestClearedRecipes } from "../lib/recipeWorlds";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { countCompletedCooks, listCompletedRecipeMarks } from "../services/historyService";
 import { getTechniqueProgress } from "../services/techniqueService";
@@ -45,7 +45,7 @@ const TILES: Array<{
   { id: "skill3", icon: GraduationCap, title: "achSkill3Title", body: "achSkill3Body" },
   { id: "journal1", icon: Camera, title: "achJournal1Title", body: "achJournal1Body" },
   { id: "saved1", icon: Bookmark, title: "achSaved1Title", body: "achSaved1Body" },
-  { id: "worldClear", icon: Trophy, title: "achWorldClearTitle", body: "achWorldClearBody" },
+  { id: "unique5", icon: Layers, title: "achUnique5Title", body: "achUnique5Body" },
 ];
 
 export function Achievements() {
@@ -72,7 +72,6 @@ export function Achievements() {
           skillsCleared: 0,
           journalPhotos: photos.length,
           savedRecipes: 0,
-          unlockedWorld: maxUnlockedWorld(guestMarks),
         };
 
         if (user && isSupabaseConfigured) {
@@ -89,7 +88,6 @@ export function Achievements() {
             skillsCleared: progress.filter((item) => item.status === "cleared").length,
             journalPhotos: photos.length,
             savedRecipes: saved.length,
-            unlockedWorld: maxUnlockedWorld(marks),
           };
         }
 
