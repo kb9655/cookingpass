@@ -83,13 +83,17 @@ export function getLocalVisit(recipeId: string): RecipeVisit | null {
 export function removeRecipeVisit(recipeId: string, userId?: string | null): void {
   writeLocalVisits(readLocalVisits().filter((item) => item.recipeId !== recipeId));
   if (userId && isSupabaseConfigured) {
-    void requireSupabase()
-      .from("recipe_visits")
-      .delete()
-      .eq("user_id", userId)
-      .eq("recipe_id", recipeId)
-      .then(() => undefined)
-      .catch(() => undefined);
+    void (async () => {
+      try {
+        await requireSupabase()
+          .from("recipe_visits")
+          .delete()
+          .eq("user_id", userId)
+          .eq("recipe_id", recipeId);
+      } catch {
+        // Remote visit cleanup is retried on the next signed-in merge.
+      }
+    })();
   }
 }
 
